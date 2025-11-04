@@ -1,0 +1,34 @@
+# Scala / SBT
+target/
+project/target/
+*.class
+*.log
+.bsp/
+
+# Mill
+out/
+
+# Generated files
+generated/
+*.v
+*.fir
+*.anno.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Verilator
+obj_dir/
+*.vcd
+*.fst
+
+# Test outputs
+test_run_dir/
