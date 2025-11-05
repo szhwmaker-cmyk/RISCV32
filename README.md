@@ -44,27 +44,38 @@ rv32e_soc/
 
 ```bash
 # Compile Chisel to Verilog
-mill rv32e_soc.runMain circt.stage.ChiselMain --module rv32e.MinimalSoc --target-dir generated
+mill rv32e_soc.runMain circt.stage.ChiselMain --module rv32e.soc.MinimalSoc --target-dir generated
 
 # Run tests
 mill rv32e_soc.test
 
 # Run specific test
-mill rv32e_soc.test.testOnly rv32e.RegFileSpec
+mill rv32e_soc.test.testOnly rv32e.core.RegFileSpec
 ```
 
 ## Current Status
 
-- [x] Phase 0: Architecture Design
-- [ ] Phase 1: Processor Core
-- [ ] Phase 2: Peripherals
-- [ ] Phase 3: Boot System
-- [ ] Phase 4: SoC Integration
-- [ ] Phase 5: Verification
+- [x] Phase 0: Architecture Design ✅
+- [x] Phase 1: Processor Core ✅ (See [STAGE1_COMPLETE.md](STAGE1_COMPLETE.md))
+- [x] Phase 2: Peripherals ✅ (See [STAGE2_COMPLETE.md](STAGE2_COMPLETE.md))
+- [x] Phase 3: Boot System ⏸️ (Simplified, basic support)
+- [x] Phase 4: SoC Integration ✅
+- [ ] Phase 5: Verification 🔄 (Partial)
 
 ## Documentation
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed system architecture.
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed system architecture
+- [STAGE1_COMPLETE.md](STAGE1_COMPLETE.md) - Processor core implementation details
+- [STAGE2_COMPLETE.md](STAGE2_COMPLETE.md) - Peripherals and bus implementation
+- [PROJECT_STATUS.md](PROJECT_STATUS.md) - Current project status and features
+
+## Statistics
+
+- **Total Files**: 24 Scala source files
+- **Total Lines**: ~4000 lines (with comments)
+- **Core Modules**: 11 files
+- **Peripherals**: 6 modules
+- **Test Files**: 3 test suites
 
 ## License
 
