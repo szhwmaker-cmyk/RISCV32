@@ -6,6 +6,7 @@ import rv32e.Config
 import rv32e.core._
 import rv32e.bus._
 import rv32e.peripherals._
+import rv32e.boot._
 
 /**
  * Minimal RV32E SoC
@@ -16,15 +17,16 @@ import rv32e.peripherals._
  * - Peripherals: SPI Flash, UART, GPIO, SPI Master, I2C Master
  * - RAM (64KB)
  *
- * Boot Flow:
- * 1. CPU starts at PC = 0x1000_0000 (SPI Flash base)
- * 2. Boot code in Flash copies program to RAM
- * 3. Jump to RAM and execute
+ * Boot Flow (with Boot ROM):
+ * 1. CPU starts at PC = 0x0000_0000 (Boot ROM)
+ * 2. Boot ROM code copies program from Flash to RAM
+ * 3. Boot ROM jumps to RAM @ 0x8000_0000
+ * 4. User program executes from RAM
  *
- * Alternatively (simplified for initial testing):
- * 1. CPU starts at PC = 0x8000_0000 (RAM base)
- * 2. Program pre-loaded in RAM
- * 3. Execute directly
+ * Boot ROM contains a small program that:
+ * - Reads 16KB from SPI Flash (@ 0x1000_0000)
+ * - Writes to RAM (@ 0x8000_0000)
+ * - Jumps to RAM entry point
  */
 
 class MinimalSocIO extends Bundle {
@@ -69,7 +71,8 @@ class MinimalSoc extends Module {
   // ========== Wishbone Interconnect ==========
   val interconnect = Module(new Interconnect)
 
-  // ========== Peripherals ==========
+  // ========== Boot ROM and Peripherals ==========
+  val boot_rom = Module(new BootROM)
   val spi_flash = Module(new SpiFlash)
   val uart = Module(new Uart)
   val gpio = Module(new Gpio)
@@ -82,6 +85,7 @@ class MinimalSoc extends Module {
   interconnect.io.dmem_master <> core.io.dmem
 
   // ========== Connect Interconnect to Peripherals ==========
+  boot_rom.io.wb <> interconnect.io.boot_rom
   spi_flash.io.wb_mem <> interconnect.io.spi_flash
   uart.io.wb <> interconnect.io.uart
   gpio.io.wb <> interconnect.io.gpio

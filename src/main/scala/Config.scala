@@ -9,7 +9,8 @@ object Config {
   // ========== Processor Parameters ==========
   val XLEN = 32                    // Register width
   val REG_NUM = 16                 // RV32E uses 16 registers (x0-x15)
-  val PC_RESET = 0x10000000L       // Reset PC: SPI Flash base address
+  val PC_RESET = 0x00000000L       // Reset PC: Boot ROM base address (for boot mode)
+  val PC_RESET_DIRECT = 0x80000000L // Alternative: Direct boot to RAM (skip boot ROM)
 
   // ========== Pipeline Parameters ==========
   val PIPELINE_STAGES = 5          // IF, ID, EX, MEM, WB
@@ -20,6 +21,11 @@ object Config {
   val BYTE_SELECT_WIDTH = 4        // Byte select width (32-bit / 8)
 
   // ========== Memory Map ==========
+  // Boot ROM (256 bytes)
+  val BOOT_ROM_BASE = 0x00000000L
+  val BOOT_ROM_SIZE = 0x100L       // 256 bytes
+  val BOOT_ROM_END  = BOOT_ROM_BASE + BOOT_ROM_SIZE - 1
+
   // SPI Flash (256MB, XIP region)
   val SPI_FLASH_BASE = 0x10000000L
   val SPI_FLASH_SIZE = 0x10000000L // 256MB

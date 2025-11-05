@@ -11,6 +11,7 @@ import rv32e.Config
  * to multiple slaves based on address decoding.
  *
  * Address Map:
+ * - 0x0000_0000 - 0x0000_00FF : Boot ROM
  * - 0x1000_0000 - 0x1FFF_FFFF : SPI Flash (XIP)
  * - 0x2000_0000 - 0x2000_0FFF : UART
  * - 0x2001_0000 - 0x2001_0FFF : GPIO
@@ -21,14 +22,15 @@ import rv32e.Config
  */
 
 object SlaveSelect {
-  val NONE       = 0.U(3.W)
-  val SPI_FLASH  = 1.U(3.W)
-  val UART       = 2.U(3.W)
-  val GPIO       = 3.U(3.W)
-  val SPI        = 4.U(3.W)
-  val I2C        = 5.U(3.W)
-  val FLASH_CTRL = 6.U(3.W)
-  val RAM        = 7.U(3.W)
+  val NONE       = 0.U(4.W)
+  val BOOT_ROM   = 1.U(4.W)
+  val SPI_FLASH  = 2.U(4.W)
+  val UART       = 3.U(4.W)
+  val GPIO       = 4.U(4.W)
+  val SPI        = 5.U(4.W)
+  val I2C        = 6.U(4.W)
+  val FLASH_CTRL = 7.U(4.W)
+  val RAM        = 8.U(4.W)
 }
 
 class InterconnectIO extends Bundle {
@@ -37,6 +39,7 @@ class InterconnectIO extends Bundle {
   val dmem_master = Flipped(new WishboneMasterIO)  // Data access
 
   // Slave ports (to peripherals/memory)
+  val boot_rom   = new WishboneMasterIO
   val spi_flash  = new WishboneMasterIO
   val uart       = new WishboneMasterIO
   val gpio       = new WishboneMasterIO
@@ -53,7 +56,9 @@ class Interconnect extends Module {
   def decodeAddress(addr: UInt): UInt = {
     val sel = WireDefault(SlaveSelect.NONE)
 
-    when(Config.inRange(addr, Config.SPI_FLASH_BASE, Config.SPI_FLASH_END)) {
+    when(Config.inRange(addr, Config.BOOT_ROM_BASE, Config.BOOT_ROM_END)) {
+      sel := SlaveSelect.BOOT_ROM
+    }.elsewhen(Config.inRange(addr, Config.SPI_FLASH_BASE, Config.SPI_FLASH_END)) {
       sel := SlaveSelect.SPI_FLASH
     }.elsewhen(Config.inRange(addr, Config.UART_BASE, Config.UART_END)) {
       sel := SlaveSelect.UART
@@ -121,6 +126,7 @@ class Interconnect extends Module {
   default_slave.stb := false.B
   default_slave.cyc := false.B
 
+  io.boot_rom   := default_slave
   io.spi_flash  := default_slave
   io.uart       := default_slave
   io.gpio       := default_slave
@@ -136,6 +142,17 @@ class Interconnect extends Module {
   // ========== Route Master to Selected Slave ==========
   when(imem_grant || dmem_grant) {
     switch(slave_sel) {
+      is(SlaveSelect.BOOT_ROM) {
+        io.boot_rom.adr := current_master.adr
+        io.boot_rom.dat_o := current_master.dat_o
+        io.boot_rom.we := current_master.we
+        io.boot_rom.sel := current_master.sel
+        io.boot_rom.stb := current_master.stb
+        io.boot_rom.cyc := current_master.cyc
+        master_ack := io.boot_rom.ack
+        master_dat_i := io.boot_rom.dat_i
+      }
+
       is(SlaveSelect.SPI_FLASH) {
         io.spi_flash.adr := current_master.adr
         io.spi_flash.dat_o := current_master.dat_o
