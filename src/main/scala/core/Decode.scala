@@ -19,15 +19,17 @@ object InstructionType {
 }
 
 object Opcode {
-  val LOAD   = "b0000011".U(7.W)
-  val STORE  = "b0100011".U(7.W)
-  val BRANCH = "b1100011".U(7.W)
-  val JALR   = "b1100111".U(7.W)
-  val JAL    = "b1101111".U(7.W)
-  val OP_IMM = "b0010011".U(7.W)
-  val OP     = "b0110011".U(7.W)
-  val AUIPC  = "b0010111".U(7.W)
-  val LUI    = "b0110111".U(7.W)
+  val LOAD     = "b0000011".U(7.W)
+  val STORE    = "b0100011".U(7.W)
+  val BRANCH   = "b1100011".U(7.W)
+  val JALR     = "b1100111".U(7.W)
+  val JAL      = "b1101111".U(7.W)
+  val OP_IMM   = "b0010011".U(7.W)
+  val OP       = "b0110011".U(7.W)
+  val AUIPC    = "b0010111".U(7.W)
+  val LUI      = "b0110111".U(7.W)
+  val MISC_MEM = "b0001111".U(7.W)  // FENCE, FENCE.I
+  val SYSTEM   = "b1110011".U(7.W)  // ECALL, EBREAK, CSR*
 }
 
 class DecodeIO extends Bundle {
@@ -80,6 +82,9 @@ class Decode extends Module {
   ctrl.branch_op := 0.U
   ctrl.reg_write := false.B
   ctrl.wb_sel := WBSel.ALU
+  ctrl.is_ecall := false.B
+  ctrl.is_ebreak := false.B
+  ctrl.is_fence := false.B
 
   // Decode based on opcode
   switch(opcode) {
@@ -219,6 +224,33 @@ class Decode extends Module {
       ctrl.reg_write := true.B
       ctrl.wb_sel := WBSel.ALU
       io.imm := imm_u
+    }
+
+    // ========== FENCE ==========
+    is(Opcode.MISC_MEM) {
+      // FENCE instruction (funct3 = 000)
+      // In single-core, no-cache system, FENCE is effectively a NOP
+      // Just mark it as a fence instruction for tracking purposes
+      ctrl.is_fence := true.B
+      // All other signals remain at default (NOP behavior)
+    }
+
+    // ========== SYSTEM (ECALL, EBREAK) ==========
+    is(Opcode.SYSTEM) {
+      // Check funct3 = 000 for ECALL/EBREAK
+      when(funct3 === 0.U) {
+        // Distinguish ECALL (imm12=0) from EBREAK (imm12=1)
+        val imm12 = io.inst(31, 20)
+        when(imm12 === 0.U) {
+          // ECALL
+          ctrl.is_ecall := true.B
+        }.elsewhen(imm12 === 1.U) {
+          // EBREAK
+          ctrl.is_ebreak := true.B
+        }
+      }
+      // Note: CSR instructions (funct3 != 000) not implemented yet
+      // They would be added here for full RV32I support
     }
   }
 

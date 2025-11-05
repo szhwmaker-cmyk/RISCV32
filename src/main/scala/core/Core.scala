@@ -45,6 +45,9 @@ class Core extends Module {
   // ========== Hazard Detection Unit ==========
   val hazard = Module(new Hazard)
 
+  // ========== CSR Register File ==========
+  val csr = Module(new CSR)
+
   // ========== Connect Memory Interfaces ==========
   io.imem <> if_stage.io.imem
   io.dmem <> mem_stage.io.dmem
@@ -92,22 +95,49 @@ class Core extends Module {
 
   hazard.io.branch_taken := ex_stage.io.branch_taken
 
+  // ========== Exception Handling ==========
+
+  // Detect exceptions in EX stage
+  val exception_detected = ex_stage.io.ex_mem.valid &&
+    (id_stage.io.id_ex.ctrl.is_ecall || id_stage.io.id_ex.ctrl.is_ebreak)
+
+  // Determine exception cause
+  val exception_cause = Mux(id_stage.io.id_ex.ctrl.is_ecall,
+    ExceptionCause.ECALL_M,
+    ExceptionCause.BREAKPOINT
+  )
+
+  // Connect CSR exception interface
+  csr.io.exception := exception_detected
+  csr.io.exception_pc := id_stage.io.id_ex.pc
+  csr.io.exception_cause := exception_cause
+
+  // CSR read/write (not used yet, defaults)
+  csr.io.addr := 0.U
+  csr.io.wdata := 0.U
+  csr.io.wen := false.B
+
+  // Exception causes pipeline flush and PC redirect
+  val exception_redirect = exception_detected
+  val exception_target = csr.io.trap_vector
+
   // ========== Stall and Flush Control ==========
 
   // IF stage
   if_stage.io.stall := hazard.io.stall_if
-  if_stage.io.flush := hazard.io.flush_if
-  if_stage.io.branch_taken := ex_stage.io.branch_taken
-  if_stage.io.branch_target := ex_stage.io.branch_target
+  if_stage.io.flush := hazard.io.flush_if || exception_redirect
+  // Branch or exception redirect
+  if_stage.io.branch_taken := ex_stage.io.branch_taken || exception_redirect
+  if_stage.io.branch_target := Mux(exception_redirect, exception_target, ex_stage.io.branch_target)
 
   // ID stage
   id_stage.io.stall := hazard.io.stall_id
-  id_stage.io.flush := hazard.io.flush_id
+  id_stage.io.flush := hazard.io.flush_id || exception_redirect
   id_stage.io.pc := if_stage.io.if_id.pc
 
   // EX stage
   ex_stage.io.stall := hazard.io.stall_ex
-  ex_stage.io.flush := hazard.io.flush_ex
+  ex_stage.io.flush := hazard.io.flush_ex || exception_redirect
 
   // MEM stage
   mem_stage.io.stall := hazard.io.stall_mem

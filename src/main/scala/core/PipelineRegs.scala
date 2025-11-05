@@ -27,6 +27,11 @@ class ControlSignals extends Bundle {
   // Write-back control
   val reg_write = Bool()          // Register write enable
   val wb_sel    = UInt(2.W)       // Write-back source: 0=ALU, 1=MEM, 2=PC+4
+
+  // Exception control
+  val is_ecall  = Bool()          // ECALL instruction
+  val is_ebreak = Bool()          // EBREAK instruction
+  val is_fence  = Bool()          // FENCE instruction (NOP in this impl)
 }
 
 object WBSel {
@@ -118,6 +123,9 @@ object PipelineRegs {
     ctrl.branch_op := 0.U
     ctrl.reg_write := false.B
     ctrl.wb_sel := 0.U
+    ctrl.is_ecall := false.B
+    ctrl.is_ebreak := false.B
+    ctrl.is_fence := false.B
     ctrl
   }
 
