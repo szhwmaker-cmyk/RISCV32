@@ -69,17 +69,20 @@ mill rv32e_soc.test.testOnly rv32e.core.RegFileSpec
 - [STAGE1_COMPLETE.md](STAGE1_COMPLETE.md) - Processor core implementation
 - [STAGE2_COMPLETE.md](STAGE2_COMPLETE.md) - Peripherals and bus system
 - [STAGE3_COMPLETE.md](STAGE3_COMPLETE.md) - Boot ROM and boot system
-- [STAGE5_COMPLETE.md](STAGE5_COMPLETE.md) - Comprehensive verification and testing
+- [STAGE5_COMPLETE.md](STAGE5_COMPLETE.md) - Unit testing and verification (92 tests)
+- [STAGE5_2_INTEGRATION_TESTS.md](STAGE5_2_INTEGRATION_TESTS.md) - Integration testing (4 programs)
+- [ASSEMBLY_GUIDE.md](ASSEMBLY_GUIDE.md) - RV32E assembly programming guide
 - [PROJECT_STATUS.md](PROJECT_STATUS.md) - Current project status
 
 ## Statistics
 
-- **Total Files**: 33 Scala source files (27 src + 6 test)
-- **Total Lines**: ~7,920 lines (4,600 src + 3,320 test)
+- **Total Files**: 38 files (27 src + 7 test + 4 assembly)
+- **Total Lines**: ~9,465 lines (4,600 src + 3,700 test + 385 asm + 780 docs)
 - **Core Modules**: 11 files
 - **Peripherals**: 6 modules
 - **Boot System**: 2 files (BootController + BootROM)
-- **Test Files**: 6 comprehensive test suites (92 test cases)
+- **Test Files**: 7 test suites (92 unit tests + 5 integration tests)
+- **Test Programs**: 4 RV32E assembly programs
 
 ## Boot Process
 
