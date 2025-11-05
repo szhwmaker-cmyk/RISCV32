@@ -30,15 +30,16 @@ rv32e_soc/
 
 ## Memory Map
 
-| Device          | Base Address | Size  |
-|----------------|--------------|-------|
-| SPI Flash (XIP)| 0x1000_0000  | 256MB |
-| UART           | 0x2000_0000  | 4KB   |
-| GPIO           | 0x2001_0000  | 4KB   |
-| SPI Master     | 0x2002_0000  | 4KB   |
-| I2C Master     | 0x2003_0000  | 4KB   |
-| Flash Ctrl     | 0x2004_0000  | 4KB   |
-| RAM            | 0x8000_0000  | 64KB  |
+| Device          | Base Address | Size  | Purpose |
+|----------------|--------------|-------|---------|
+| **Boot ROM**   | 0x0000_0000  | 256B  | Boot code (CPU starts here) |
+| SPI Flash (XIP)| 0x1000_0000  | 256MB | Program storage |
+| UART           | 0x2000_0000  | 4KB   | Serial communication |
+| GPIO           | 0x2001_0000  | 4KB   | General I/O |
+| SPI Master     | 0x2002_0000  | 4KB   | SPI peripherals |
+| I2C Master     | 0x2003_0000  | 4KB   | I2C peripherals |
+| Flash Ctrl     | 0x2004_0000  | 4KB   | Flash controller regs |
+| **RAM**        | 0x8000_0000  | 64KB  | Main memory (execution) |
 
 ## Build & Test
 
@@ -58,24 +59,33 @@ mill rv32e_soc.test.testOnly rv32e.core.RegFileSpec
 - [x] Phase 0: Architecture Design ✅
 - [x] Phase 1: Processor Core ✅ (See [STAGE1_COMPLETE.md](STAGE1_COMPLETE.md))
 - [x] Phase 2: Peripherals ✅ (See [STAGE2_COMPLETE.md](STAGE2_COMPLETE.md))
-- [x] Phase 3: Boot System ⏸️ (Simplified, basic support)
+- [x] Phase 3: Boot System ✅ (See [STAGE3_COMPLETE.md](STAGE3_COMPLETE.md))
 - [x] Phase 4: SoC Integration ✅
-- [ ] Phase 5: Verification 🔄 (Partial)
+- [ ] Phase 5: Verification 🔄 (In progress)
 
 ## Documentation
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed system architecture
-- [STAGE1_COMPLETE.md](STAGE1_COMPLETE.md) - Processor core implementation details
-- [STAGE2_COMPLETE.md](STAGE2_COMPLETE.md) - Peripherals and bus implementation
-- [PROJECT_STATUS.md](PROJECT_STATUS.md) - Current project status and features
+- [STAGE1_COMPLETE.md](STAGE1_COMPLETE.md) - Processor core implementation
+- [STAGE2_COMPLETE.md](STAGE2_COMPLETE.md) - Peripherals and bus system
+- [STAGE3_COMPLETE.md](STAGE3_COMPLETE.md) - Boot ROM and boot system
+- [PROJECT_STATUS.md](PROJECT_STATUS.md) - Current project status
 
 ## Statistics
 
-- **Total Files**: 24 Scala source files
-- **Total Lines**: ~4000 lines (with comments)
+- **Total Files**: 27 Scala source files
+- **Total Lines**: ~4600 lines (with comments)
 - **Core Modules**: 11 files
 - **Peripherals**: 6 modules
+- **Boot System**: 2 files (BootController + BootROM)
 - **Test Files**: 3 test suites
+
+## Boot Process
+
+1. **Power-On**: CPU resets to PC = 0x00000000 (Boot ROM)
+2. **Boot ROM Execution**: Copies 16KB from Flash (0x10000000) to RAM (0x80000000)
+3. **Jump to RAM**: Boot ROM jumps to 0x80000000
+4. **User Program**: Application executes from RAM
 
 ## License
 
