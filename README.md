@@ -27,6 +27,7 @@ rv32e_soc/
 - **SPI Flash Boot**: Boot from external Flash, copy to RAM
 - **Peripherals**: UART, GPIO, SPI Master, I2C Master
 - **Bus**: Wishbone B4 Pipelined interconnect
+- **RT-Thread Support**: RTOS simulation with multi-tasking demo
 
 ## Memory Map
 
@@ -47,11 +48,17 @@ rv32e_soc/
 # Compile Chisel to Verilog
 mill rv32e_soc.runMain circt.stage.ChiselMain --module rv32e.soc.MinimalSoc --target-dir generated
 
-# Run tests
+# Run all tests
 mill rv32e_soc.test
 
-# Run specific test
+# Run unit tests
 mill rv32e_soc.test.testOnly rv32e.core.RegFileSpec
+
+# Run integration tests
+mill rv32e_soc.test.testOnly rv32e.integration.IntegrationSpec
+
+# Run RT-Thread simulation
+mill rv32e_soc.test.testOnly rv32e.integration.RTThreadSpec
 ```
 
 ## Current Status
@@ -72,6 +79,7 @@ mill rv32e_soc.test.testOnly rv32e.core.RegFileSpec
 - [STAGE5_COMPLETE.md](STAGE5_COMPLETE.md) - Unit testing and verification (92 tests)
 - [STAGE5_2_INTEGRATION_TESTS.md](STAGE5_2_INTEGRATION_TESTS.md) - Integration testing (4 programs)
 - [ASSEMBLY_GUIDE.md](ASSEMBLY_GUIDE.md) - RV32E assembly programming guide
+- [RTTHREAD_SIMULATION.md](RTTHREAD_SIMULATION.md) - RT-Thread RTOS simulation guide
 - [PROJECT_STATUS.md](PROJECT_STATUS.md) - Current project status
 
 ## Statistics
