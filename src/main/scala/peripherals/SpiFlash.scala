@@ -76,6 +76,12 @@ class SpiFlash extends Module {
   val spi_sck_reg = RegInit(false.B)
   val spi_phase = RegInit(false.B)  // false = setup, true = sample
 
+  // ========== Timeout Protection (FIXED: Problem #12) ==========
+  // Prevent state machine deadlock on errors
+  val timeout_counter = RegInit(0.U(16.W))
+  val timeout_limit = 65535.U  // ~65K cycles timeout (longer for SPI operations)
+  val timeout = timeout_counter === timeout_limit
+
   // ========== SPI Outputs ==========
   io.spi_cs_n := state === s_idle
   io.spi_sck := spi_sck_reg
@@ -161,8 +167,26 @@ class SpiFlash extends Module {
     is(s_done) {
       ctrl_busy := false.B
       ctrl_done := true.B
+      timeout_counter := 0.U
       state := s_idle
     }
+  }
+
+  // FIXED: Timeout recovery logic (Problem #12)
+  // If timeout occurs in any non-idle state, return to idle with error
+  when(state =/= s_idle) {
+    timeout_counter := timeout_counter + 1.U
+    when(timeout) {
+      assert(false.B, cf"SPI Flash timeout in state=${state}")
+      // Reset to idle state
+      state := s_idle
+      ctrl_busy := false.B
+      ctrl_done := false.B
+      timeout_counter := 0.U
+      read_data := 0.U  // Return zero on timeout
+    }
+  }.otherwise {
+    timeout_counter := 0.U
   }
 
   // ========== Wishbone Register Interface ==========

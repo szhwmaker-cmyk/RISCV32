@@ -1,7 +1,7 @@
 # Code Review Fixes - Progress Report
 
 **Date**: 2025-11-06
-**Status**: ✅ **5/5 Critical Issues Fixed**, ⏳ **4/8 Major Issues Remaining**
+**Status**: ✅ **5/5 Critical Issues Fixed**, ✅ **7/8 Major Issues Fixed**, ⏳ **1/8 Major Issue Remaining**
 
 ---
 
@@ -147,60 +147,113 @@
 
 ---
 
-## ⏳ Remaining Issues (To Be Fixed)
-
 ### Major Issue #6: Wishbone Timeout Mechanism
-**Status**: ⏳ **PENDING**
-**Priority**: Medium
+**Status**: ✅ **FIXED**
+**Commit**: (this session)
 
 **Problem**: IF and MEM stages don't have timeout protection for Wishbone bus transactions.
 
-**Risk**: If a slave doesn't respond, the pipeline will stall forever.
+**Fix**:
+- Added timeout counter (255 cycles) to IF stage
+- Added timeout counter (255 cycles) to MEM stage
+- On timeout, assert error and insert NOP (IF) or return zero (MEM)
+- Reset counter when transaction completes
 
-**Recommended Fix**:
-```scala
-// Add to IF and MEM stages
-val timeout_counter = RegInit(0.U(8.W))
-val timeout = timeout_counter === 255.U
+**Files Modified**:
+- `src/main/scala/core/IF.scala`
+- `src/main/scala/core/MEM.scala`
 
-when(io.imem.stb && !io.imem.ack) {
-  timeout_counter := timeout_counter + 1.U
-}.otherwise {
-  timeout_counter := 0.U
-}
-
-when(timeout) {
-  assert(false.B, "Wishbone bus timeout")
-  // Option: Insert NOP and continue
-  if_id_reg.inst := 0x00000013.U  // NOP
-}
-```
+---
 
 ### Major Issue #8: Branch Prediction Documentation
-**Status**: ⏳ **PENDING**
-**Priority**: Low
+**Status**: ✅ **FIXED**
+**Commit**: (this session)
 
 **Problem**: Static not-taken branch prediction strategy not documented in code.
 
-**Recommended Fix**: Add detailed comments to `Core.scala` and `IF.scala` explaining:
-- Static not-taken prediction strategy
-- Branch misprediction penalty (2 cycles)
-- Why this strategy was chosen
+**Fix**:
+- Added comprehensive comments to `Core.scala` explaining:
+  - Static not-taken prediction strategy
+  - Branch misprediction penalty (2 cycles)
+  - Performance characteristics
+  - Design rationale
+
+**Files Modified**:
+- `src/main/scala/core/Core.scala`
+
+---
 
 ### Major Issue #9: RV32M Extension Check
-**Status**: ⏳ **PENDING**
-**Priority**: Medium
+**Status**: ✅ **FIXED**
+**Commit**: (this session)
 
 **Problem**: No explicit check for unsupported RV32M instructions (MUL/DIV).
 
-**Recommended Fix**:
-```scala
-// In Decode.scala
-when(opcode === Opcode.OP && funct7 === 0x01.U) {
-  // RV32M extension (MUL/DIV/REM)
-  assert(false.B, "RV32M extension not supported")
-}
-```
+**Fix**:
+- Added check in Decode.scala for funct7=0x01 (RV32M)
+- Assert on RV32M instructions with descriptive error
+- Decode as NOP to prevent undefined behavior
+
+**Files Modified**:
+- `src/main/scala/core/Decode.scala` (lines 102-108)
+
+---
+
+### Major Issue #11: Memory Alignment Check
+**Status**: ✅ **FIXED**
+**Commit**: (this session)
+
+**Problem**: MEM stage doesn't check for misaligned memory accesses.
+
+**Fix**:
+- Added alignment check logic using MuxLookup based on mem_size
+- Byte accesses: always aligned
+- Halfword accesses: check addr[0] == 0
+- Word accesses: check addr[1:0] == 0
+- Assert on misaligned access with descriptive error message
+
+**Files Modified**:
+- `src/main/scala/core/MEM.scala`
+
+---
+
+### Major Issue #12: SPI Flash State Machine Timeout
+**Status**: ✅ **FIXED**
+**Commit**: (this session)
+
+**Problem**: SPI Flash state machine could deadlock on errors.
+
+**Fix**:
+- Added timeout counter (65535 cycles) to SPI Flash controller
+- Reset to idle state on timeout
+- Clear busy/done flags on timeout
+- Assert error on timeout for debugging
+
+**Files Modified**:
+- `src/main/scala/peripherals/SpiFlash.scala`
+
+---
+
+### Major Issue #13: UART FIFO Overflow Protection
+**Status**: ✅ **FIXED**
+**Commit**: (this session)
+
+**Problem**: UART RX FIFO overflow behavior not defined.
+
+**Fix**:
+- Added `rx_overflow` flag to track FIFO overflow
+- Check FIFO ready before enqueueing data
+- Set overflow flag when data lost (FIFO full)
+- Expose overflow flag in STATUS register bit 4 (R/W1C)
+- Software can clear flag by writing 1 to bit 4
+- Updated documentation with overflow behavior
+
+**Files Modified**:
+- `src/main/scala/peripherals/Uart.scala`
+
+---
+
+## ⏳ Remaining Issues (To Be Fixed)
 
 ### Major Issue #10: Interconnect Multi-Master Testing
 **Status**: ⏳ **PENDING**
@@ -209,41 +262,6 @@ when(opcode === Opcode.OP && funct7 === 0x01.U) {
 **Problem**: Multi-master arbitration logic not tested.
 
 **Note**: Current design only has single master (Core), so risk is low.
-
-### Major Issue #11: Memory Alignment Check
-**Status**: ⏳ **PENDING**
-**Priority**: Medium
-
-**Problem**: MEM stage doesn't check for misaligned memory accesses.
-
-**Recommended Fix**:
-```scala
-// In MEM.scala
-val addr_aligned = MuxLookup(io.ex_mem.mem_size, true.B)(Seq(
-  0.U -> true.B,                    // Byte - always aligned
-  1.U -> (io.ex_mem.alu_result(0) === 0.U),    // Half - 2-byte aligned
-  2.U -> (io.ex_mem.alu_result(1,0) === 0.U)   // Word - 4-byte aligned
-))
-
-assert(addr_aligned || (!io.ex_mem.mem_read && !io.ex_mem.mem_write),
-       "Misaligned memory access detected")
-```
-
-### Major Issue #12: SPI Flash State Machine Timeout
-**Status**: ⏳ **PENDING**
-**Priority**: Low
-
-**Problem**: SPI Flash state machine could deadlock on errors.
-
-**Recommended Fix**: Add timeout and error recovery to SPI Flash controller.
-
-### Major Issue #13: UART FIFO Overflow Protection
-**Status**: ⏳ **PENDING**
-**Priority**: Low
-
-**Problem**: UART RX FIFO overflow behavior not defined.
-
-**Recommended Fix**: Add overflow flag and document overflow behavior (drop vs overwrite).
 
 ---
 
@@ -309,25 +327,33 @@ Extract common constants and functions to shared modules.
 | Category | Total | Fixed | Remaining | % Complete |
 |----------|-------|-------|-----------|-----------|
 | 🔴 Critical | 5 | 5 | 0 | **100%** |
-| 🟡 Major | 8 | 1 | 7 | 12% |
+| 🟡 Major | 8 | 7 | 1 | **88%** |
 | 🟢 Minor | 6 | 0 | 6 | 0% |
-| **Total** | **19** | **6** | **13** | **32%** |
+| **Total** | **19** | **12** | **7** | **63%** |
 
 ---
 
 ## 🎯 Next Steps
 
-### Immediate (This Session)
+### Completed (This Session)
 1. ✅ Fix all 5 critical issues
 2. ✅ Fix CSR initialization (Major #7)
-3. ⏳ Add Wishbone timeout (Major #6)
-4. ⏳ Add memory alignment check (Major #11)
-5. ⏳ Add RV32M check (Major #9)
+3. ✅ Add Wishbone timeout (Major #6)
+4. ✅ Add memory alignment check (Major #11)
+5. ✅ Add RV32M check (Major #9)
+6. ✅ Add branch prediction documentation (Major #8)
+7. ✅ Add SPI Flash timeout (Major #12)
+8. ✅ Add UART FIFO overflow protection (Major #13)
 
-### Short Term (Next Session)
-1. Add runtime assertions (Minor #1)
-2. Update tests for all fixes
-3. Add branch prediction documentation (Major #8)
+### Remaining (Next Session)
+1. Add Interconnect multi-master tests (Major #10) - Low priority
+2. Add runtime assertions (Minor #1)
+3. Update tests for all fixes
+4. Standardize signal naming (Minor #2)
+5. Enhance test coverage (Minor #3)
+6. Add performance counters (Minor #4)
+7. Update documentation (Minor #5)
+8. Code modularization (Minor #6)
 
 ### Long Term
 1. Enhance test coverage (Minor #3)

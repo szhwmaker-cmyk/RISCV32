@@ -16,6 +16,43 @@ import rv32e.bus._
  * - Pipeline stalls for LOAD-USE hazards
  * - Branch prediction: static not-taken
  * - Wishbone bus interface for instruction and data memory
+ *
+ * ========== Branch Prediction Strategy (FIXED: Problem #8 - Documentation) ==========
+ *
+ * This processor uses a **static not-taken** branch prediction strategy:
+ *
+ * **How it works**:
+ * 1. IF stage always fetches from PC+4 (assumes branch not taken)
+ * 2. Branch condition evaluated in EX stage (2 cycles later)
+ * 3. If branch actually taken, flush IF and ID stages and redirect PC
+ *
+ * **Misprediction penalty**: 2 cycles (flush IF and ID)
+ *
+ * **Why static not-taken**:
+ * - Simple hardware implementation (no prediction table)
+ * - No additional storage required
+ * - Acceptable for embedded systems where branches are less frequent
+ * - Forward branches (e.g., if-then-else) are typically not taken
+ *
+ * **Performance implications**:
+ * - Taken branches: 2-cycle penalty
+ * - Not-taken branches: 0-cycle penalty (predicted correctly)
+ * - Average penalty depends on branch taken rate in workload
+ *
+ * **Alternative strategies** (not implemented):
+ * - Static backward-taken (predict loops taken)
+ * - 1-bit predictor (dynamic)
+ * - 2-bit saturating counter (better than 1-bit)
+ * - Branch Target Buffer (BTB) for target caching
+ *
+ * **Branch resolution timeline**:
+ * ```
+ * Cycle 0: IF fetches branch instruction at PC=X
+ * Cycle 1: ID decodes branch, reads registers
+ * Cycle 2: EX evaluates condition, computes target
+ *          - If taken: flush IF (PC=X+4) and ID, redirect to target
+ *          - If not taken: continue normally (prediction correct!)
+ * ```
  */
 class CoreIO extends Bundle {
   // Instruction memory interface

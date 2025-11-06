@@ -38,6 +38,26 @@ class MEM extends Module {
   val mem_data_buffer = RegInit(0.U(32.W))
   val mem_done = RegInit(false.B)
 
+  // ========== Wishbone Timeout Protection (FIXED: Problem #6) ==========
+  val timeout_counter = RegInit(0.U(8.W))
+  val timeout_limit = 255.U
+  val timeout = timeout_counter === timeout_limit
+
+  // ========== Memory Alignment Check (FIXED: Problem #11) ==========
+  // Check if memory access is properly aligned
+  val mem_addr = io.ex_mem.alu_result
+  val addr_aligned = MuxLookup(io.ex_mem.mem_size, true.B)(Seq(
+    0.U -> true.B,                      // Byte - always aligned
+    1.U -> (mem_addr(0) === 0.U),      // Halfword - 2-byte aligned
+    2.U -> (mem_addr(1, 0) === 0.U)    // Word - 4-byte aligned
+  ))
+
+  // Assert on misaligned access
+  when(io.ex_mem.valid && (io.ex_mem.mem_read || io.ex_mem.mem_write)) {
+    assert(addr_aligned,
+           cf"Misaligned memory access: addr=0x${Hexadecimal(mem_addr)}, size=${io.ex_mem.mem_size}")
+  }
+
   // ========== Wishbone Bus Control ==========
   io.dmem.adr := io.ex_mem.alu_result
   io.dmem.dat_o := Wishbone.alignWriteData(
@@ -82,14 +102,32 @@ class MEM extends Module {
       io.dmem.stb := true.B
       io.dmem.cyc := true.B
 
+      // Increment timeout counter
+      timeout_counter := timeout_counter + 1.U
+
       when(io.dmem.ack) {
         when(io.ex_mem.mem_read) {
           mem_data_buffer := io.dmem.dat_i
         }
         mem_done := true.B
+        timeout_counter := 0.U
+        state := s_idle
+      }.elsewhen(timeout) {
+        // FIXED: Timeout occurred - return zero for loads, ignore stores
+        assert(false.B, cf"Wishbone DMEM timeout at addr=0x${Hexadecimal(io.ex_mem.alu_result)}")
+        when(io.ex_mem.mem_read) {
+          mem_data_buffer := 0.U  // Return zero on timeout
+        }
+        mem_done := true.B
+        timeout_counter := 0.U
         state := s_idle
       }
     }
+  }
+
+  // Reset timeout counter when not waiting for ACK
+  when(state =/= s_wait_ack) {
+    timeout_counter := 0.U
   }
 
   // ========== Load Data Processing ==========

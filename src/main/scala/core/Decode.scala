@@ -99,20 +99,28 @@ class Decode extends Module {
   switch(opcode) {
     // ========== R-Type (OP) ==========
     is(Opcode.OP) {
-      ctrl.alu_src := false.B  // Use rs2
-      ctrl.reg_write := true.B
-      ctrl.wb_sel := WBSel.ALU
+      // FIXED: Check for unsupported RV32M extension (Problem #9)
+      // funct7=0x01 indicates RV32M instructions (MUL, DIV, REM)
+      when(funct7 === 0x01.U) {
+        assert(false.B, cf"RV32M extension not supported: funct7=0x01, funct3=${funct3}")
+        // Decode as NOP to prevent undefined behavior
+        ctrl.reg_write := false.B
+      }.otherwise {
+        ctrl.alu_src := false.B  // Use rs2
+        ctrl.reg_write := true.B
+        ctrl.wb_sel := WBSel.ALU
 
-      // Determine ALU operation from funct3 and funct7
-      switch(funct3) {
-        is(0.U) { ctrl.alu_op := Mux(funct7(5), ALUOp.SUB, ALUOp.ADD) } // ADD/SUB
-        is(1.U) { ctrl.alu_op := ALUOp.SLL }  // SLL
-        is(2.U) { ctrl.alu_op := ALUOp.SLT }  // SLT
-        is(3.U) { ctrl.alu_op := ALUOp.SLTU } // SLTU
-        is(4.U) { ctrl.alu_op := ALUOp.XOR }  // XOR
-        is(5.U) { ctrl.alu_op := Mux(funct7(5), ALUOp.SRA, ALUOp.SRL) } // SRL/SRA
-        is(6.U) { ctrl.alu_op := ALUOp.OR }   // OR
-        is(7.U) { ctrl.alu_op := ALUOp.AND }  // AND
+        // Determine ALU operation from funct3 and funct7
+        switch(funct3) {
+          is(0.U) { ctrl.alu_op := Mux(funct7(5), ALUOp.SUB, ALUOp.ADD) } // ADD/SUB
+          is(1.U) { ctrl.alu_op := ALUOp.SLL }  // SLL
+          is(2.U) { ctrl.alu_op := ALUOp.SLT }  // SLT
+          is(3.U) { ctrl.alu_op := ALUOp.SLTU } // SLTU
+          is(4.U) { ctrl.alu_op := ALUOp.XOR }  // XOR
+          is(5.U) { ctrl.alu_op := Mux(funct7(5), ALUOp.SRA, ALUOp.SRL) } // SRL/SRA
+          is(6.U) { ctrl.alu_op := ALUOp.OR }   // OR
+          is(7.U) { ctrl.alu_op := ALUOp.AND }  // AND
+        }
       }
     }
 

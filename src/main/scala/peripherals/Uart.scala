@@ -14,17 +14,19 @@ import rv32e.Config
  * Features:
  * - Configurable baud rate
  * - 16-byte TX and RX FIFOs
- * - Status flags: tx_full, tx_empty, rx_valid, rx_empty
+ * - Status flags: tx_full, tx_empty, rx_valid, rx_empty, rx_overflow
+ * - RX FIFO overflow protection: drops incoming data when full, sets overflow flag
  *
  * Register Map:
  * 0x00: TXDATA  - Transmit data (write only)
  * 0x04: RXDATA  - Receive data (read only)
- * 0x08: STATUS  - Status register (read only)
- *                 [31:4] Reserved
- *                 [3] rx_empty
- *                 [2] rx_valid
- *                 [1] tx_empty
- *                 [0] tx_full
+ * 0x08: STATUS  - Status register (read/write)
+ *                 [31:5] Reserved
+ *                 [4] rx_overflow (R/W1C - write 1 to clear)
+ *                 [3] rx_empty (RO)
+ *                 [2] rx_valid (RO)
+ *                 [1] tx_full (RO)
+ *                 [0] tx_empty (RO)
  * 0x0C: BAUD    - Baud rate divisor (read/write)
  *                 divisor = clk_freq / baud_rate
  */
@@ -51,6 +53,11 @@ class Uart extends Module {
 
   // ========== RX FIFO ==========
   val rx_fifo = Module(new Queue(UInt(8.W), Config.UART_FIFO_DEPTH))
+
+  // ========== FIFO Overflow Protection (FIXED: Problem #13) ==========
+  // Track when RX FIFO overflows (data lost because FIFO is full)
+  // Software can read this flag from STATUS register bit 4 and clear it by writing 1
+  val rx_overflow = RegInit(false.B)
 
   // ========== TX State Machine ==========
   val tx_shift_reg = RegInit(0xFF.U(10.W))  // Start + 8 data + stop
@@ -154,8 +161,16 @@ class Uart extends Module {
     is(rx_stop) {
       when(rx_baud_count === baud_div) {
         when(rx_synced) {  // Valid stop bit
-          rx_fifo.io.enq.valid := true.B
-          rx_fifo.io.enq.bits := rx_shift_reg
+          // FIXED: Check FIFO full before enqueueing (Problem #13)
+          when(rx_fifo.io.enq.ready) {
+            // FIFO has space - enqueue data
+            rx_fifo.io.enq.valid := true.B
+            rx_fifo.io.enq.bits := rx_shift_reg
+          }.otherwise {
+            // FIFO is full - data lost, set overflow flag
+            rx_overflow := true.B
+            assert(false.B, "UART RX FIFO overflow: data lost")
+          }
         }
         rx_state := rx_idle
       }.otherwise {
@@ -179,6 +194,11 @@ class Uart extends Module {
           tx_fifo.io.enq.valid := true.B
           tx_fifo.io.enq.bits := io.wb.dat_o(7, 0)
         }
+        is(2.U) { // STATUS - write to clear overflow flag (FIXED: Problem #13)
+          when(io.wb.dat_o(4)) {
+            rx_overflow := false.B  // Clear overflow flag by writing 1 to bit 4
+          }
+        }
         is(3.U) { // BAUD
           baud_div := io.wb.dat_o(15, 0)
         }
@@ -192,11 +212,12 @@ class Uart extends Module {
         }
         is(2.U) { // STATUS
           io.wb.dat_i := Cat(
-            0.U(28.W),
-            !rx_fifo.io.deq.valid,  // rx_empty
-            rx_fifo.io.deq.valid,   // rx_valid
-            !tx_fifo.io.enq.ready,  // tx_full
-            tx_fifo.io.count === 0.U  // tx_empty
+            0.U(27.W),
+            rx_overflow,              // FIXED: bit 4 - rx_overflow (Problem #13)
+            !rx_fifo.io.deq.valid,    // bit 3 - rx_empty
+            rx_fifo.io.deq.valid,     // bit 2 - rx_valid
+            !tx_fifo.io.enq.ready,    // bit 1 - tx_full
+            tx_fifo.io.count === 0.U  // bit 0 - tx_empty
           )
         }
         is(3.U) { // BAUD

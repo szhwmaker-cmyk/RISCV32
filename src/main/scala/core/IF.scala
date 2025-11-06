@@ -48,6 +48,12 @@ class IF extends Module {
   val inst_buffer = RegInit(0.U(32.W))
   val inst_valid = RegInit(false.B)
 
+  // ========== Wishbone Timeout Protection (FIXED: Problem #6) ==========
+  // Prevent infinite stalls if slave doesn't respond
+  val timeout_counter = RegInit(0.U(8.W))
+  val timeout_limit = 255.U  // 255 cycles timeout
+  val timeout = timeout_counter === timeout_limit
+
   // ========== PC Update Logic ==========
   val pc_next = WireDefault(pc_reg)
 
@@ -103,18 +109,34 @@ class IF extends Module {
       io.imem.stb := true.B
       io.imem.cyc := true.B
 
+      // Increment timeout counter
+      timeout_counter := timeout_counter + 1.U
+
       when(io.imem.ack) {
         // Instruction received
         inst_buffer := io.imem.dat_i
         inst_valid := true.B
+        timeout_counter := 0.U
         state := s_idle
 
         // Immediately start next fetch if not stalling
         when(!io.stall && !io.branch_taken) {
           state := s_fetch
         }
+      }.elsewhen(timeout) {
+        // FIXED: Timeout occurred - insert NOP and continue
+        assert(false.B, cf"Wishbone IMEM timeout at PC=0x${Hexadecimal(pc_reg)}")
+        inst_buffer := 0x00000013.U  // NOP (ADDI x0, x0, 0)
+        inst_valid := true.B
+        timeout_counter := 0.U
+        state := s_idle
       }
     }
+  }
+
+  // Reset timeout counter when not waiting for ACK
+  when(state =/= s_wait_ack) {
+    timeout_counter := 0.U
   }
 
   // ========== IF/ID Pipeline Register ==========
