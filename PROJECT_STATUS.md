@@ -264,6 +264,58 @@ gtkwave test_run_dir/ALUSpec/*.vcd
 
 ---
 
+## ⚠️ 已知限制与注意事项
+
+### 功能限制
+1. **SPI Flash XIP** - 自动执行就地（Execute-In-Place）未完整实现
+   - 当前仅支持寄存器方式手动读取
+   - 需要外部Boot Loader将代码从Flash复制到RAM
+   - 详见: `peripherals/SpiFlash.scala` TODO注释
+
+2. **Boot系统** - 简化实现
+   - Boot ROM功能有限
+   - 依赖外部程序加载
+   - 未实现自动从Flash启动
+
+3. **测试覆盖** - 部分功能未充分验证
+   - Load-Use Hazard测试不完整
+   - 异常处理路径（ECALL/EBREAK）需要更多测试
+   - Wishbone总线协议验证不足
+
+### 设计假设
+1. **单时钟域** - 所有模块使用统一时钟
+   - 未实现跨时钟域同步（CDC）
+   - 扩展到多时钟需要添加同步器
+
+2. **简化仲裁** - Wishbone互联器
+   - 当前仅单Master（CPU核心）
+   - 多Master并发访问未充分测试
+
+3. **Hazard检测** - 针对简单5级流水线
+   - 对于多周期指令扩展可能需要调整
+   - 异常+分支同时发生的优先级待明确
+
+### 代码质量改进点
+1. **位宽一致性** - 已修复
+   - ✅ Hazard.scala中0.U位宽已修正为0.U(4.W)
+   - ✅ RegFile.scala中0.U位宽已修正
+
+2. **运行时断言** - 已添加
+   - ✅ Decode.scala中RV32E寄存器范围检查
+   - 需要: 更多关键路径断言
+
+3. **文档完整性**
+   - 部分功能描述与实际实现有差异
+   - 建议查阅KNOWN_ISSUES.md了解详情
+
+### 使用建议
+- 📚 阅读 **KNOWN_ISSUES.md** 了解所有问题详情
+- 🧪 仿真测试建议使用默认RAM模块（Ram.scala）
+- 🔧 FPGA部署参考 **FPGA_RAM_GUIDE.md**
+- ⚡ 性能基准测试待补充
+
+---
+
 ## 📈 后续开发计划
 
 ### 短期目标

@@ -58,11 +58,11 @@ class Hazard extends Module {
    * - EX/MEM.rd is not x0
    */
   val ex_hazard_rs1 = io.ex_mem_reg_write &&
-                      (io.ex_mem_rd =/= 0.U) &&
+                      (io.ex_mem_rd =/= 0.U(4.W)) &&
                       (io.ex_mem_rd === io.id_ex_rs1)
 
   val ex_hazard_rs2 = io.ex_mem_reg_write &&
-                      (io.ex_mem_rd =/= 0.U) &&
+                      (io.ex_mem_rd =/= 0.U(4.W)) &&
                       (io.ex_mem_rd === io.id_ex_rs2)
 
   /**
@@ -74,12 +74,12 @@ class Hazard extends Module {
    * - NOT already forwarding from EX/MEM (EX has priority)
    */
   val mem_hazard_rs1 = io.mem_wb_reg_write &&
-                       (io.mem_wb_rd =/= 0.U) &&
+                       (io.mem_wb_rd =/= 0.U(4.W)) &&
                        (io.mem_wb_rd === io.id_ex_rs1) &&
                        !ex_hazard_rs1
 
   val mem_hazard_rs2 = io.mem_wb_reg_write &&
-                       (io.mem_wb_rd =/= 0.U) &&
+                       (io.mem_wb_rd =/= 0.U(4.W)) &&
                        (io.mem_wb_rd === io.id_ex_rs2) &&
                        !ex_hazard_rs2
 
@@ -111,7 +111,7 @@ class Hazard extends Module {
   val load_use_hazard = io.id_ex_mem_read &&
                         ((io.ex_mem_rd === io.id_ex_rs1) ||
                          (io.ex_mem_rd === io.id_ex_rs2)) &&
-                        (io.ex_mem_rd =/= 0.U)
+                        (io.ex_mem_rd =/= 0.U(4.W))
 
   // ========== Stall Control ==========
   val stall = load_use_hazard

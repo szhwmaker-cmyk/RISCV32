@@ -57,6 +57,15 @@ class Decode extends Module {
   io.rs2 := rs2(3, 0)
   io.rd  := rd(3, 0)
 
+  // RV32E Compliance Assertions: Verify high bit is 0 (registers x0-x15 only)
+  // These assertions catch illegal register encodings (x16-x31)
+  // Note: Disabled in synthesis, active in simulation for debugging
+  when(io.inst =/= 0.U) {  // Only check valid instructions
+    assert(rs1(4) === 0.U(1.W), cf"Invalid RS1: instruction uses x${rs1}, RV32E only supports x0-x15")
+    assert(rs2(4) === 0.U(1.W), cf"Invalid RS2: instruction uses x${rs2}, RV32E only supports x0-x15")
+    assert(rd(4) === 0.U(1.W), cf"Invalid RD: instruction uses x${rd}, RV32E only supports x0-x15")
+  }
+
   // ========== Immediate Generation ==========
   val imm_i = Cat(Fill(20, io.inst(31)), io.inst(31, 20))
   val imm_s = Cat(Fill(20, io.inst(31)), io.inst(31, 25), io.inst(11, 7))
