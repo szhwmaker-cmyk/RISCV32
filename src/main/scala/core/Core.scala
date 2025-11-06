@@ -84,6 +84,8 @@ class Core extends Module {
   // Inputs to hazard unit
   hazard.io.id_ex_rs1 := id_stage.io.id_ex.rs1_addr
   hazard.io.id_ex_rs2 := id_stage.io.id_ex.rs2_addr
+  hazard.io.id_ex_rd := id_stage.io.id_ex.rd_addr           // FIXED: ID/EX destination for LOAD-USE detection
+  hazard.io.id_ex_rd_valid := id_stage.io.id_ex.ctrl.reg_write  // FIXED: Will write to register
   hazard.io.id_ex_mem_read := id_stage.io.id_ex.ctrl.mem_read
 
   hazard.io.ex_mem_rd := ex_stage.io.ex_mem.rd_addr
@@ -97,19 +99,20 @@ class Core extends Module {
 
   // ========== Exception Handling ==========
 
-  // Detect exceptions in EX stage
+  // Detect exceptions in EX stage (now using consistent EX/MEM signals)
+  // FIXED: Use ex_stage.io.ex_mem signals instead of mixing with id_stage.io.id_ex
   val exception_detected = ex_stage.io.ex_mem.valid &&
-    (id_stage.io.id_ex.ctrl.is_ecall || id_stage.io.id_ex.ctrl.is_ebreak)
+    (ex_stage.io.ex_mem.is_ecall || ex_stage.io.ex_mem.is_ebreak)
 
   // Determine exception cause
-  val exception_cause = Mux(id_stage.io.id_ex.ctrl.is_ecall,
+  val exception_cause = Mux(ex_stage.io.ex_mem.is_ecall,
     ExceptionCause.ECALL_M,
     ExceptionCause.BREAKPOINT
   )
 
   // Connect CSR exception interface
   csr.io.exception := exception_detected
-  csr.io.exception_pc := id_stage.io.id_ex.pc
+  csr.io.exception_pc := ex_stage.io.ex_mem.pc  // FIXED: Use EX/MEM PC
   csr.io.exception_cause := exception_cause
 
   // CSR read/write (not used yet, defaults)
@@ -164,8 +167,8 @@ class Core extends Module {
   // Connect forwarding to EX stage
   ex_stage.io.fwd_ex_data := fwd_ex_data
   ex_stage.io.fwd_mem_data := fwd_mem_data
-  ex_stage.io.fwd_ex_sel := hazard.io.fwd_rs1_sel   // Forwarding control for rs1
-  ex_stage.io.fwd_mem_sel := hazard.io.fwd_rs2_sel  // Forwarding control for rs2
+  ex_stage.io.fwd_rs1_sel := hazard.io.fwd_rs1_sel  // FIXED: Clear naming (was fwd_ex_sel)
+  ex_stage.io.fwd_rs2_sel := hazard.io.fwd_rs2_sel  // FIXED: Clear naming (was fwd_mem_sel)
 
   // ========== Debug Outputs ==========
   io.debug_pc := if_stage.io.if_id.pc

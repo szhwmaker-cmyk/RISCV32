@@ -61,6 +61,18 @@ class IF extends Module {
     }
   }
 
+  // ========== PC Validation (FIXED: Problem #5) ==========
+  // Check for PC overflow and misalignment
+  assert(pc_next(1, 0) === 0.U, "PC misalignment detected: PC must be 4-byte aligned")
+  assert(pc_next < Config.MAX_PC.U, cf"PC overflow detected: PC = 0x${Hexadecimal(pc_next)} >= MAX_PC")
+
+  // Check branch target validity when branching
+  when(io.branch_taken) {
+    assert(io.branch_target(1, 0) === 0.U, "Branch target misalignment: must be 4-byte aligned")
+    assert(io.branch_target < Config.MAX_PC.U,
+           cf"Branch target overflow: target = 0x${Hexadecimal(io.branch_target)} >= MAX_PC")
+  }
+
   pc_reg := pc_next
 
   // ========== Instruction Memory Access (Wishbone) ==========

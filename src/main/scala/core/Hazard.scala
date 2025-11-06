@@ -18,6 +18,8 @@ class HazardIO extends Bundle {
   // Pipeline register inputs for hazard detection
   val id_ex_rs1 = Input(UInt(4.W))
   val id_ex_rs2 = Input(UInt(4.W))
+  val id_ex_rd = Input(UInt(4.W))       // ID/EX destination register (for LOAD-USE detection)
+  val id_ex_rd_valid = Input(Bool())    // ID/EX will write to register
   val id_ex_mem_read = Input(Bool())
 
   val ex_mem_rd = Input(UInt(4.W))
@@ -97,21 +99,22 @@ class Hazard extends Module {
   // ========== LOAD-USE Hazard Detection ==========
   /**
    * LOAD-USE Hazard:
-   * If EX stage is executing a LOAD and the destination register
-   * will be used by the instruction in ID stage, we must stall.
+   * If ID/EX stage is executing a LOAD and the destination register
+   * will be used by the next instruction (currently in ID stage), we must stall.
    *
    * Stall condition:
    * - ID/EX is a LOAD (mem_read = true)
-   * - ID/EX.rd matches current rs1 or rs2 in ID stage
+   * - ID/EX.rd will be written (rd_valid = true)
+   * - ID/EX.rd matches current ID stage's rs1 or rs2
+   * - ID/EX.rd is not x0
    *
-   * Note: We need to access ID stage's rs1/rs2, which means
-   * this logic should be in the pipeline controller.
-   * For now, we detect when EX/MEM has a load.
+   * FIXED: Now correctly uses id_ex_rd instead of ex_mem_rd
    */
   val load_use_hazard = io.id_ex_mem_read &&
-                        ((io.ex_mem_rd === io.id_ex_rs1) ||
-                         (io.ex_mem_rd === io.id_ex_rs2)) &&
-                        (io.ex_mem_rd =/= 0.U(4.W))
+                        io.id_ex_rd_valid &&
+                        (io.id_ex_rd =/= 0.U(4.W)) &&
+                        ((io.id_ex_rd === io.id_ex_rs1) ||
+                         (io.id_ex_rd === io.id_ex_rs2))
 
   // ========== Stall Control ==========
   val stall = load_use_hazard

@@ -2,6 +2,7 @@ package rv32e.core
 
 import chisel3._
 import chisel3.util._
+import rv32e.Config
 
 /**
  * CSR (Control and Status Register) File
@@ -46,8 +47,9 @@ class CSR extends Module {
   val io = IO(new CSRIO)
 
   // ========== CSR Registers ==========
-  val mstatus = RegInit(0.U(32.W))  // Machine status (simplified, unused for now)
-  val mtvec   = RegInit(0x80000004.U(32.W))  // Default trap vector (RAM base + 4)
+  // FIXED: Use Config values for initialization (Problem #7)
+  val mstatus = RegInit(Config.MSTATUS_INIT.U(32.W))  // Machine status (MIE=0, MPIE=0)
+  val mtvec   = RegInit(Config.MTVEC_BASE.U(32.W))    // Default trap vector from Config
   val mepc    = RegInit(0.U(32.W))  // Machine exception PC
   val mcause  = RegInit(0.U(32.W))  // Machine exception cause
 

@@ -11,6 +11,11 @@ object Config {
   val REG_NUM = 16                 // RV32E uses 16 registers (x0-x15)
   val PC_RESET = 0x00000000L       // Reset PC: Boot ROM base address (for boot mode)
   val PC_RESET_DIRECT = 0x80000000L // Alternative: Direct boot to RAM (skip boot ROM)
+  val MAX_PC = 0xFFFFFFFCL         // FIXED: Maximum PC value (must be 4-byte aligned)
+
+  // ========== CSR Parameters (FIXED: Problem #7) ==========
+  val MTVEC_BASE = 0x80000004L     // Default trap vector (RAM + 4)
+  val MSTATUS_INIT = 0x00000000L   // Initial mstatus (MIE=0, MPIE=0)
 
   // ========== Pipeline Parameters ==========
   val PIPELINE_STAGES = 5          // IF, ID, EX, MEM, WB

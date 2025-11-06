@@ -39,28 +39,29 @@ class RegFile extends Module {
   // Using Mem for synthesizable register array
   val regfile = Mem(Config.REG_NUM, UInt(32.W))
 
-  // ========== Read Ports (Asynchronous) ==========
-  // x0 always reads as 0, other registers read from regfile
-  io.rs1_data := Mux(io.rs1_addr === 0.U(4.W), 0.U(32.W), regfile(io.rs1_addr))
-  io.rs2_data := Mux(io.rs2_addr === 0.U(4.W), 0.U(32.W), regfile(io.rs2_addr))
-
   // ========== Write Port (Synchronous) ==========
   // Only write if write enable is high AND destination is not x0
   when(io.rd_wen && io.rd_addr =/= 0.U(4.W)) {
     regfile(io.rd_addr) := io.rd_data
   }
 
-  // ========== Internal Forwarding (Write-Through) ==========
-  // If reading the same register being written, forward the write data
-  // This handles the case where a read occurs in the same cycle as a write
-  when(io.rd_wen && io.rd_addr =/= 0.U(4.W)) {
-    when(io.rs1_addr === io.rd_addr) {
-      io.rs1_data := io.rd_data
-    }
-    when(io.rs2_addr === io.rd_addr) {
-      io.rs2_data := io.rd_data
-    }
-  }
+  // ========== Read Ports with Write-Through (Combinational) ==========
+  // FIXED: Single Mux expression for clarity and reliable synthesis
+  // Priority: write-through > x0 hardwire > regfile read
+  // If currently writing to same register, forward write data (write-through)
+  // Otherwise, if reading x0, return 0
+  // Otherwise, read from regfile
+  io.rs1_data := Mux(io.rd_wen && io.rd_addr === io.rs1_addr && io.rd_addr =/= 0.U(4.W),
+                     io.rd_data,  // Write-through
+                     Mux(io.rs1_addr === 0.U(4.W),
+                         0.U(32.W),  // x0 hardwired to zero
+                         regfile(io.rs1_addr)))  // Normal read
+
+  io.rs2_data := Mux(io.rd_wen && io.rd_addr === io.rs2_addr && io.rd_addr =/= 0.U(4.W),
+                     io.rd_data,  // Write-through
+                     Mux(io.rs2_addr === 0.U(4.W),
+                         0.U(32.W),  // x0 hardwired to zero
+                         regfile(io.rs2_addr)))  // Normal read
 }
 
 object RegFile extends App {

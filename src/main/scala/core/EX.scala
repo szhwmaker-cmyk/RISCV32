@@ -26,8 +26,8 @@ class EXIO extends Bundle {
   // Forwarding inputs (from later stages)
   val fwd_ex_data = Input(UInt(32.W))   // Forward from EX/MEM
   val fwd_mem_data = Input(UInt(32.W))  // Forward from MEM/WB
-  val fwd_ex_sel = Input(UInt(2.W))     // Forwarding select for rs1
-  val fwd_mem_sel = Input(UInt(2.W))    // Forwarding select for rs2
+  val fwd_rs1_sel = Input(UInt(2.W))    // FIXED: Forwarding select for rs1 (was fwd_ex_sel)
+  val fwd_rs2_sel = Input(UInt(2.W))    // FIXED: Forwarding select for rs2 (was fwd_mem_sel)
 
   // Control inputs
   val stall = Input(Bool())
@@ -45,15 +45,17 @@ class EX extends Module {
 
   // ========== Forwarding Mux for rs1 and rs2 ==========
   // Select forwarded data for rs1
+  // FIXED: Use fwd_rs1_sel (was fwd_ex_sel)
   val alu_src1 = MuxCase(io.id_ex.rs1_data, Seq(
-    (io.fwd_ex_sel === ForwardSel.FWD_EX)  -> io.fwd_ex_data,
-    (io.fwd_ex_sel === ForwardSel.FWD_MEM) -> io.fwd_mem_data
+    (io.fwd_rs1_sel === ForwardSel.FWD_EX)  -> io.fwd_ex_data,
+    (io.fwd_rs1_sel === ForwardSel.FWD_MEM) -> io.fwd_mem_data
   ))
 
   // Select forwarded data for rs2
+  // FIXED: Use fwd_rs2_sel (was fwd_mem_sel)
   val alu_src2_reg = MuxCase(io.id_ex.rs2_data, Seq(
-    (io.fwd_mem_sel === ForwardSel.FWD_EX)  -> io.fwd_ex_data,
-    (io.fwd_mem_sel === ForwardSel.FWD_MEM) -> io.fwd_mem_data
+    (io.fwd_rs2_sel === ForwardSel.FWD_EX)  -> io.fwd_ex_data,
+    (io.fwd_rs2_sel === ForwardSel.FWD_MEM) -> io.fwd_mem_data
   ))
 
   // ========== ALU ==========
@@ -120,6 +122,8 @@ class EX extends Module {
     ex_mem_reg.mem_unsigned := io.id_ex.ctrl.mem_unsigned
     ex_mem_reg.reg_write := io.id_ex.ctrl.reg_write
     ex_mem_reg.wb_sel := io.id_ex.ctrl.wb_sel
+    ex_mem_reg.is_ecall := io.id_ex.ctrl.is_ecall    // FIXED: Propagate exception signals
+    ex_mem_reg.is_ebreak := io.id_ex.ctrl.is_ebreak  // FIXED: Propagate exception signals
     ex_mem_reg.valid := io.id_ex.valid
   }
 

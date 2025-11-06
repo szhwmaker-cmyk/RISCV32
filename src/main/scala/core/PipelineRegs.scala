@@ -90,6 +90,8 @@ class EX_MEM_Reg extends Bundle {
   val mem_unsigned = Bool()
   val reg_write   = Bool()
   val wb_sel      = UInt(2.W)
+  val is_ecall    = Bool()      // FIXED: Exception signals propagated from ID/EX
+  val is_ebreak   = Bool()      // FIXED: Exception signals propagated from ID/EX
   val valid       = Bool()
 }
 
@@ -163,6 +165,8 @@ object PipelineRegs {
     reg.mem_unsigned := false.B
     reg.reg_write := false.B
     reg.wb_sel := 0.U
+    reg.is_ecall := false.B   // FIXED: Initialize exception signals
+    reg.is_ebreak := false.B  // FIXED: Initialize exception signals
     reg.valid := false.B
     reg
   }
