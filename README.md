@@ -132,16 +132,18 @@ mill rv32e_soc.verilog
 项目采用自底向上的开发策略，分为以下阶段：
 
 - [x] **阶段 0**: 项目初始化与架构设计 ✅
-- [ ] **阶段 1**: RV32E 处理器核心设计
-  - [ ] 基础模块（RegFile, ALU）
-  - [ ] 流水线阶段（IF, ID, EX, MEM, WB）
-  - [ ] 冒险检测与转发
-- [ ] **阶段 2**: 总线与外设子系统
-  - [ ] Wishbone 总线实现
-  - [ ] 外设控制器（UART, GPIO, SPI, I2C）
-- [ ] **阶段 3**: SPI Boot 启动系统
-- [ ] **阶段 4**: SoC 顶层集成
-- [ ] **阶段 5**: 综合验证与测试
+- [x] **阶段 1**: RV32E 处理器核心设计 ✅
+  - [x] 基础模块（RegFile, ALU）
+  - [x] 流水线阶段（IF, ID, EX, MEM, WB）
+  - [x] 冒险检测与转发
+- [x] **阶段 2**: 总线与外设子系统 ✅
+  - [x] Wishbone 总线实现
+  - [x] 外设控制器（UART, GPIO, SPI, I2C）
+- [x] **阶段 3**: SPI Boot 启动系统 ✅
+- [x] **阶段 4**: SoC 顶层集成 ✅
+- [x] **阶段 5**: 综合验证与测试 ✅
+
+**项目状态**: ✅ 核心功能完成，就绪使用！
 
 ## 验证测试
 
@@ -181,9 +183,12 @@ mill rv32e_soc.test.testOnly peripherals.UartSpec
 
 ## 文档
 
+- [快速入门指南](docs/QUICKSTART.md) - 5 分钟开始使用
 - [架构设计文档](docs/ARCHITECTURE.md) - 系统架构、流水线设计、地址映射
-- [寄存器映射表](docs/REGISTER_MAP.md) - 所有外设寄存器定义 (TODO)
-- [验证报告](docs/VERIFICATION_REPORT.md) - 测试结果和覆盖率 (TODO)
+- [项目总结](docs/PROJECT_SUMMARY.md) - 完整的项目总结和统计
+- [测试指南](docs/TESTING_GUIDE.md) - 详细的测试和验证策略
+- [FPGA 部署指南](fpga/README.md) - FPGA 综合和部署
+- [RT-Thread 移植](software/rtthread/README.md) - RT-Thread RTOS 移植说明
 
 ## 代码示例
 
