@@ -1,17 +1,17 @@
 // RV32E SoC Project Build Configuration
-// 可以使用 sbt 或 mill 构建，推荐使用 mill
+// 使用 Chisel 6.5 构建 RV32E 5级流水线处理器
 
 name := "rv32e_soc"
 
 version := "1.0.0"
 
-scalaVersion := "2.13.12"
+scalaVersion := "2.13.14"
 
-// Chisel 依赖
+// Chisel 6.5 依赖
 libraryDependencies ++= Seq(
-  "org.chipsalliance" %% "chisel" % "5.1.0",
-  "edu.berkeley.cs" %% "chiseltest" % "5.0.2" % "test",
-  "org.scalatest" %% "scalatest" % "3.2.16" % "test"
+  "org.chipsalliance" %% "chisel" % "6.5.0",
+  "edu.berkeley.cs" %% "chiseltest" % "6.0.0" % "test",
+  "org.scalatest" %% "scalatest" % "3.2.18" % "test"
 )
 
 // Scala 编译选项
@@ -20,8 +20,8 @@ scalacOptions ++= Seq(
   "-deprecation",
   "-feature",
   "-Xcheckinit",
-  "-Ymacro-annotations"
+  "-release:11"
 )
 
-// Chisel 编译插件
-addCompilerPlugin("org.chipsalliance" % "chisel-plugin" % "5.1.0" cross CrossVersion.full)
+// Chisel 6.5 插件
+addCompilerPlugin("org.chipsalliance" % "chisel-plugin" % "6.5.0" cross CrossVersion.full)

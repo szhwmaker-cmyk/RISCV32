@@ -5,6 +5,7 @@ import chisel3._
 /**
  * RV32E SoC 系统配置参数
  * 包含处理器核心参数、总线配置和地址空间映射
+ * 支持 RT-Thread 和 Wishbone B4 总线
  */
 object Config {
 
@@ -21,15 +22,15 @@ object Config {
   /** 寄存器地址宽度 (4 位可表示 16 个寄存器) */
   val REG_ADDR_WIDTH = 4
 
-  /** 复位后的 PC 值 (指向 SPI Flash 起始地址) */
-  val PC_RESET = 0x10000000L
+  /** 复位后的 PC 值 (指向 BootROM 起始地址) */
+  val PC_RESET = 0x00000000L
 
   /** 指令宽度 */
   val INST_WIDTH = 32
 
 
   // ============================================================================
-  // 总线参数
+  // 总线参数 (Wishbone B4)
   // ============================================================================
 
   /** 总线数据宽度 */
@@ -46,66 +47,77 @@ object Config {
   // 存储器参数
   // ============================================================================
 
-  /** RAM 大小 (64KB) */
-  val RAM_SIZE = 64 * 1024
+  /** BootROM 大小 (64KB) */
+  val BOOTROM_SIZE = 64 * 1024
 
-  /** RAM 地址宽度 (64KB = 2^16) */
-  val RAM_ADDR_WIDTH = 16
+  /** BootROM 地址宽度 (64KB = 2^16) */
+  val BOOTROM_ADDR_WIDTH = 16
 
-  /** SPI Flash 大小 (假设 16MB) */
-  val FLASH_SIZE = 16 * 1024 * 1024
+  /** SRAM 大小 (128KB) */
+  val SRAM_SIZE = 128 * 1024
+
+  /** SRAM 地址宽度 (128KB = 2^17) */
+  val SRAM_ADDR_WIDTH = 17
 
 
   // ============================================================================
-  // 地址空间映射
+  // 地址空间映射 (符合 RT-Thread 需求)
   // ============================================================================
 
-  /** SPI Flash 基地址 (256MB 空间: 0x1000_0000 - 0x1FFF_FFFF) */
-  val SPI_FLASH_BASE = 0x10000000L
-  val SPI_FLASH_SIZE = 0x10000000L  // 256MB
-  val SPI_FLASH_END  = SPI_FLASH_BASE + SPI_FLASH_SIZE - 1
+  /** BootROM 基地址 (64KB: 0x0000_0000 - 0x0000_FFFF) */
+  val BOOTROM_BASE = 0x00000000L
+  val BOOTROM_END  = BOOTROM_BASE + BOOTROM_SIZE - 1
 
-  /** UART 基地址 (64KB 空间) */
-  val UART_BASE = 0x20000000L
-  val UART_SIZE = 0x10000L  // 64KB
+  /** UART0 基地址 (4KB: 0x1000_0000 - 0x1000_0FFF) */
+  val UART_BASE = 0x10000000L
+  val UART_SIZE = 0x1000L
   val UART_END  = UART_BASE + UART_SIZE - 1
 
-  /** GPIO 基地址 (64KB 空间) */
-  val GPIO_BASE = 0x20010000L
-  val GPIO_SIZE = 0x10000L  // 64KB
-  val GPIO_END  = GPIO_BASE + GPIO_SIZE - 1
-
-  /** SPI Master 基地址 (64KB 空间) */
-  val SPI_BASE = 0x20020000L
-  val SPI_SIZE = 0x10000L  // 64KB
+  /** SPI0 基地址 (4KB: 0x1000_1000 - 0x1000_1FFF) */
+  val SPI_BASE = 0x10001000L
+  val SPI_SIZE = 0x1000L
   val SPI_END  = SPI_BASE + SPI_SIZE - 1
 
-  /** I2C Master 基地址 (64KB 空间) */
-  val I2C_BASE = 0x20030000L
-  val I2C_SIZE = 0x10000L  // 64KB
+  /** I2C0 基地址 (4KB: 0x1000_2000 - 0x1000_2FFF) */
+  val I2C_BASE = 0x10002000L
+  val I2C_SIZE = 0x1000L
   val I2C_END  = I2C_BASE + I2C_SIZE - 1
 
-  /** RAM 基地址 (256MB 空间: 0x8000_0000 - 0x8FFF_FFFF) */
-  val RAM_BASE = 0x80000000L
-  val RAM_SPACE_SIZE = 0x10000000L  // 256MB 地址空间
-  val RAM_END  = RAM_BASE + RAM_SPACE_SIZE - 1
+  /** GPIO 基地址 (4KB: 0x1000_3000 - 0x1000_3FFF) */
+  val GPIO_BASE = 0x10003000L
+  val GPIO_SIZE = 0x1000L
+  val GPIO_END  = GPIO_BASE + GPIO_SIZE - 1
+
+  /** Timer 基地址 (4KB: 0x1000_4000 - 0x1000_4FFF) */
+  val TIMER_BASE = 0x10004000L
+  val TIMER_SIZE = 0x1000L
+  val TIMER_END  = TIMER_BASE + TIMER_SIZE - 1
+
+  /** SRAM 基地址 (128KB: 0x2000_0000 - 0x2001_FFFF) */
+  val SRAM_BASE = 0x20000000L
+  val SRAM_END  = SRAM_BASE + SRAM_SIZE - 1
 
 
   // ============================================================================
-  // 外设寄存器偏移 - UART
+  // 外设寄存器偏移 - UART 16550 兼容
   // ============================================================================
 
   object UartRegs {
-    val TXDATA = 0x00  // 发送数据寄存器
-    val RXDATA = 0x04  // 接收数据寄存器
-    val STATUS = 0x08  // 状态寄存器 [tx_full, tx_empty, rx_valid, ...]
-    val BAUD   = 0x0C  // 波特率分频寄存器
-    val CTRL   = 0x10  // 控制寄存器 [tx_en, rx_en, ...]
+    val RBR_THR = 0x00  // 接收缓冲/发送保持寄存器
+    val IER     = 0x04  // 中断使能寄存器
+    val IIR_FCR = 0x08  // 中断标识/FIFO控制寄存器
+    val LCR     = 0x0C  // 线路控制寄存器
+    val MCR     = 0x10  // Modem控制寄存器
+    val LSR     = 0x14  // 线路状态寄存器
+    val MSR     = 0x18  // Modem状态寄存器
+    val SCR     = 0x1C  // 暂存寄存器
+    val DLL     = 0x00  // 波特率除数低字节 (DLAB=1)
+    val DLH     = 0x04  // 波特率除数高字节 (DLAB=1)
   }
 
 
   // ============================================================================
-  // 外设寄存器偏移 - GPIO
+  // 外设寄存器偏移 - GPIO (32位)
   // ============================================================================
 
   object GpioRegs {
@@ -113,19 +125,6 @@ object Config {
     val DATA_OUT = 0x04  // 输出数据寄存器
     val DIR      = 0x08  // 方向控制寄存器 (0=输入, 1=输出)
     val OE       = 0x0C  // 输出使能寄存器
-  }
-
-
-  // ============================================================================
-  // 外设寄存器偏移 - SPI Flash Controller
-  // ============================================================================
-
-  object SpiFlashRegs {
-    val CTRL  = 0x00  // 控制寄存器 [start, busy, done]
-    val DIV   = 0x04  // 时钟分频寄存器
-    val ADDR  = 0x08  // Flash 地址寄存器
-    val DATA  = 0x0C  // 读取数据寄存器
-    val CMD   = 0x10  // SPI 命令寄存器
   }
 
 
@@ -157,7 +156,20 @@ object Config {
 
 
   // ============================================================================
-  // UART 默认配置
+  // 外设寄存器偏移 - Timer (64位)
+  // ============================================================================
+
+  object TimerRegs {
+    val MTIME_LO   = 0x00  // 时间寄存器低32位
+    val MTIME_HI   = 0x04  // 时间寄存器高32位
+    val MTIMECMP_LO = 0x08  // 时间比较寄存器低32位
+    val MTIMECMP_HI = 0x0C  // 时间比较寄存器高32位
+    val CTRL       = 0x10  // 控制寄存器
+  }
+
+
+  // ============================================================================
+  // 系统配置
   // ============================================================================
 
   /** 系统时钟频率 (50 MHz) */
@@ -196,7 +208,79 @@ object Config {
     val SLL  = 7.U(4.W)  // Shift Left Logical
     val SRL  = 8.U(4.W)  // Shift Right Logical
     val SRA  = 9.U(4.W)  // Shift Right Arithmetic
+    val MUL  = 10.U(4.W) // Multiply
+    val DIV  = 11.U(4.W) // Divide
+    val REM  = 12.U(4.W) // Remainder
     val NOP  = 15.U(4.W)
+  }
+
+
+  // ============================================================================
+  // CSR 地址 (Machine Mode)
+  // ============================================================================
+
+  object CSRAddr {
+    // Machine Information
+    val MVENDORID  = 0xF11
+    val MARCHID    = 0xF12
+    val MIMPID     = 0xF13
+    val MHARTID    = 0xF14
+
+    // Machine Trap Setup
+    val MSTATUS    = 0x300
+    val MISA       = 0x301
+    val MIE        = 0x304
+    val MTVEC      = 0x305
+
+    // Machine Trap Handling
+    val MSCRATCH   = 0x340
+    val MEPC       = 0x341
+    val MCAUSE     = 0x342
+    val MTVAL      = 0x343
+    val MIP        = 0x344
+
+    // Machine Counter/Timers
+    val MCYCLE     = 0xB00
+    val MINSTRET   = 0xB02
+    val MCYCLEH    = 0xB80
+    val MINSTRETH  = 0xB82
+  }
+
+
+  // ============================================================================
+  // 异常和中断编码
+  // ============================================================================
+
+  object Exception {
+    val INST_ADDR_MISALIGNED  = 0
+    val INST_ACCESS_FAULT     = 1
+    val ILLEGAL_INST          = 2
+    val BREAKPOINT            = 3
+    val LOAD_ADDR_MISALIGNED  = 4
+    val LOAD_ACCESS_FAULT     = 5
+    val STORE_ADDR_MISALIGNED = 6
+    val STORE_ACCESS_FAULT    = 7
+    val ECALL_M               = 11
+  }
+
+  object Interrupt {
+    val M_SOFTWARE = 3
+    val M_TIMER    = 7
+    val M_EXTERNAL = 11
+  }
+
+
+  // ============================================================================
+  // 指令类型
+  // ============================================================================
+
+  object InstType {
+    val R = 0.U(3.W)  // R-type
+    val I = 1.U(3.W)  // I-type
+    val S = 2.U(3.W)  // S-type
+    val B = 3.U(3.W)  // B-type
+    val U = 4.U(3.W)  // U-type
+    val J = 5.U(3.W)  // J-type
   }
 
 
@@ -213,17 +297,18 @@ object Config {
   }
 
   /**
-   * 地址解码：判断地址属于哪个外设
+   * 地址解码：判断地址属于哪个外设/存储器
    */
-  def decodeAddr(addr: UInt): (Bool, Bool, Bool, Bool, Bool, Bool) = {
-    val sel_flash = inRange(addr, SPI_FLASH_BASE, SPI_FLASH_SIZE)
-    val sel_uart  = inRange(addr, UART_BASE, UART_SIZE)
-    val sel_gpio  = inRange(addr, GPIO_BASE, GPIO_SIZE)
-    val sel_spi   = inRange(addr, SPI_BASE, SPI_SIZE)
-    val sel_i2c   = inRange(addr, I2C_BASE, I2C_SIZE)
-    val sel_ram   = inRange(addr, RAM_BASE, RAM_SPACE_SIZE)
+  def decodeAddr(addr: UInt): (Bool, Bool, Bool, Bool, Bool, Bool, Bool) = {
+    val sel_bootrom = inRange(addr, BOOTROM_BASE, BOOTROM_SIZE)
+    val sel_uart    = inRange(addr, UART_BASE, UART_SIZE)
+    val sel_gpio    = inRange(addr, GPIO_BASE, GPIO_SIZE)
+    val sel_spi     = inRange(addr, SPI_BASE, SPI_SIZE)
+    val sel_i2c     = inRange(addr, I2C_BASE, I2C_SIZE)
+    val sel_timer   = inRange(addr, TIMER_BASE, TIMER_SIZE)
+    val sel_sram    = inRange(addr, SRAM_BASE, SRAM_SIZE)
 
-    (sel_flash, sel_uart, sel_gpio, sel_spi, sel_i2c, sel_ram)
+    (sel_bootrom, sel_uart, sel_gpio, sel_spi, sel_i2c, sel_timer, sel_sram)
   }
 
 

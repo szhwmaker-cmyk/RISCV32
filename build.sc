@@ -5,12 +5,12 @@ import mill.scalalib.TestModule.ScalaTest
 
 /**
  * RV32E SoC Mill 构建配置
- * 使用 Chisel 3.6 和 Scala 2.13
+ * 使用 Chisel 6.5 和 Scala 2.13
  */
 object rv32e_soc extends ScalaModule with ScalafmtModule {
 
   // Scala 版本
-  def scalaVersion = "2.13.12"
+  def scalaVersion = "2.13.14"
 
   // 编译选项
   def scalacOptions = Seq(
@@ -18,24 +18,24 @@ object rv32e_soc extends ScalaModule with ScalafmtModule {
     "-deprecation",
     "-feature",
     "-Xcheckinit",
-    "-Ymacro-annotations"
+    "-release:11"
   )
 
-  // Ivy 依赖
+  // Chisel 6.5 依赖
   def ivyDeps = Agg(
-    ivy"org.chipsalliance::chisel:5.1.0",
+    ivy"org.chipsalliance::chisel:6.5.0",
   )
 
-  // 编译插件
+  // Chisel 6.5 编译插件
   def scalacPluginIvyDeps = Agg(
-    ivy"org.chipsalliance:::chisel-plugin:5.1.0",
+    ivy"org.chipsalliance:::chisel-plugin:6.5.0",
   )
 
   // 测试模块
   object test extends ScalaTests with TestModule.ScalaTest {
     def ivyDeps = Agg(
-      ivy"org.scalatest::scalatest:3.2.16",
-      ivy"edu.berkeley.cs::chiseltest:5.0.2"
+      ivy"org.scalatest::scalatest:3.2.18",
+      ivy"edu.berkeley.cs::chiseltest:6.0.0"
     )
   }
 
@@ -46,7 +46,7 @@ object rv32e_soc extends ScalaModule with ScalafmtModule {
       "java",
       "-cp", classpath.mkString(":"),
       "circt.stage.ChiselMain",
-      "--module", "soc.MinimalSoc",
+      "--module", "soc.WishboneSoc",
       "--target-dir", "generated"
     ).call()
   }
