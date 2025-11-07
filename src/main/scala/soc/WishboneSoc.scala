@@ -119,21 +119,21 @@ object WishboneSocMain extends App {
   println("Generating RV32E SoC Verilog...")
   println("=" * 80)
 
-  val verilog = circt.stage.ChiselStage.emitSystemVerilog(
-    new WishboneSoc,
-    firtoolOpts = Array(
-      "-disable-all-randomization",
-      "-strip-debug-info"
-    )
-  )
+  val verilog = chisel3.emitVerilog(new WishboneSoc)
+
+  // 确保输出目录存在
+  val outputDir = new java.io.File("generated")
+  if (!outputDir.exists()) {
+    outputDir.mkdirs()
+  }
 
   // 写入文件
   import java.io.PrintWriter
-  val writer = new PrintWriter("generated/WishboneSoc.sv")
+  val writer = new PrintWriter("generated/WishboneSoc.v")
   writer.write(verilog)
   writer.close()
 
   println("Verilog generated successfully!")
-  println("Output: generated/WishboneSoc.sv")
+  println("Output: generated/WishboneSoc.v")
   println("=" * 80)
 }

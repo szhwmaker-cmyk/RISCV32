@@ -72,9 +72,6 @@ class RegFile extends Module {
  */
 object RegFileMain extends App {
   println("Generating RegFile Verilog...")
-  val verilog = circt.stage.ChiselStage.emitSystemVerilog(
-    new RegFile,
-    firtoolOpts = Array("-disable-all-randomization", "-strip-debug-info")
-  )
+  val verilog = chisel3.emitVerilog(new RegFile)
   println(verilog)
 }

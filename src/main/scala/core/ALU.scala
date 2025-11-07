@@ -105,9 +105,6 @@ class ALU extends Module {
  */
 object ALUMain extends App {
   println("Generating ALU Verilog...")
-  val verilog = circt.stage.ChiselStage.emitSystemVerilog(
-    new ALU,
-    firtoolOpts = Array("-disable-all-randomization", "-strip-debug-info")
-  )
+  val verilog = chisel3.emitVerilog(new ALU)
   println(verilog)
 }
