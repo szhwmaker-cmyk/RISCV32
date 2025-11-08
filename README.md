@@ -54,10 +54,10 @@ rv32e_soc/
 ### 环境要求
 
 - **Scala**: 2.13.12
-- **Chisel**: 5.1.0
-- **Mill**: 0.11+ (推荐) 或 SBT 1.9+
+- **Chisel**: 6.5.0 ⬆️ (已升级)
+- **ChiselTest**: 6.0.0
+- **Mill**: 0.11+ (推荐)
 - **Java**: JDK 8 或更高版本
-- **Verilator**: 5.0+ (用于仿真)
 
 ### 安装 Mill（推荐构建工具）
 
@@ -72,29 +72,20 @@ sudo mv mill /usr/local/bin/
 
 ```bash
 # 使用 Mill 编译
-mill rv32e_soc.compile
-
-# 或使用 SBT 编译
-sbt compile
+mill rv32e.compile
 ```
 
 ### 运行测试
 
 ```bash
-# 运行所有测试
-mill rv32e_soc.test
+# 运行所有核心模块测试
+mill rv32e.test
 
 # 运行特定测试
-mill rv32e_soc.test.testOnly core.RegFileSpec
-```
-
-### 生成 Verilog
-
-```bash
-# 使用 Mill
-mill rv32e_soc.verilog
-
-# Verilog 文件将生成在 generated/ 目录
+mill rv32e.test.testOnly core.ALUTest
+mill rv32e.test.testOnly core.RegFileTest
+mill rv32e.test.testOnly core.ImmGenTest
+mill rv32e.test.testOnly core.BranchUnitTest
 ```
 
 ## 核心特性
@@ -132,16 +123,31 @@ mill rv32e_soc.verilog
 项目采用自底向上的开发策略，分为以下阶段：
 
 - [x] **阶段 0**: 项目初始化与架构设计 ✅
-- [ ] **阶段 1**: RV32E 处理器核心设计
-  - [ ] 基础模块（RegFile, ALU）
+- [x] **阶段 1**: RV32E 处理器核心基础模块 ✅
+  - [x] 基础模块（RegFile, ALU, ImmGen, BranchUnit）
+  - [x] 完整的单元测试覆盖 (>90%)
+  - [x] Chisel 6.5 升级完成
   - [ ] 流水线阶段（IF, ID, EX, MEM, WB）
   - [ ] 冒险检测与转发
-- [ ] **阶段 2**: 总线与外设子系统
-  - [ ] Wishbone 总线实现
-  - [ ] 外设控制器（UART, GPIO, SPI, I2C）
-- [ ] **阶段 3**: SPI Boot 启动系统
-- [ ] **阶段 4**: SoC 顶层集成
-- [ ] **阶段 5**: 综合验证与测试
+- [ ] **阶段 2**: 流水线设计与冒险处理
+  - [ ] 5级流水线实现
+  - [ ] 前递(Forwarding)逻辑
+  - [ ] 流水线暂停(Stall)和冲刷(Flush)
+  - [ ] 分支预测
+- [ ] **阶段 3**: 总线与外设子系统
+  - [ ] Wishbone B4总线实现
+  - [ ] 外设控制器（UART, GPIO, Timer）
+- [ ] **阶段 4**: SPI Flash与I2C外设
+  - [ ] SPI Flash控制器
+  - [ ] I2C控制器
+- [ ] **阶段 5**: 仿真验证环境
+  - [ ] 完整仿真环境
+  - [ ] Bootloader实现
+  - [ ] RT-Thread启动验证
+- [ ] **阶段 6**: FPGA部署与文档
+  - [ ] FPGA约束文件
+  - [ ] 综合与实现
+  - [ ] 完整技术文档
 
 ## 验证测试
 
@@ -289,6 +295,6 @@ A: 参考现有外设模块，实现 Wishbone 从设备接口，并在 Interconn
 
 ---
 
-**项目状态**: 🚧 开发中 (阶段 0 已完成)
+**项目状态**: 🚧 开发中 (阶段 0-1 已完成，阶段2进行中)
 
-**最后更新**: 2025-11-04
+**最后更新**: 2025-11-08
