@@ -36,6 +36,11 @@ class RV32ECore extends Module {
     val dmem_ren = Output(Bool())
     val dmem_size = Output(UInt(2.W))
 
+    // 中断输入（来自外部PLIC）
+    val external_irq = Input(Bool())
+    val timer_irq = Input(Bool())
+    val software_irq = Input(Bool())
+
     // 调试接口
     val debug_pc = Output(UInt(32.W))
     val debug_inst = Output(UInt(32.W))
@@ -45,6 +50,9 @@ class RV32ECore extends Module {
 
   // 寄存器堆
   val regfile = Module(new RegFile())
+
+  // CSR寄存器文件（新增）
+  val csr = Module(new CSRFile())
 
   // 流水线阶段
   val if_stage = Module(new IFStage())
@@ -131,9 +139,72 @@ class RV32ECore extends Module {
   wb_stage.io.mem_wb := mem_stage.io.mem_wb
 
   // 写回寄存器堆
+  // 如果wb_src = 3，使用CSR数据；否则使用WB阶段的输出
+  val final_wb_data = Mux(mem_stage.io.mem_wb.wb_src === 3.U,
+    csr.io.execute_csr_rdata,
+    wb_stage.io.wb_rd_data
+  )
+
   regfile.io.rd_addr := wb_stage.io.wb_rd_addr
-  regfile.io.rd_data := wb_stage.io.wb_rd_data
+  regfile.io.rd_data := final_wb_data
   regfile.io.rd_wen := wb_stage.io.wb_reg_write
+
+  // ========== CSR模块连接 ==========
+
+  // CSR读写接口（连接到ID和EX阶段）
+  csr.io.decode_csr_addr := id_stage.io.id_ex.inst(31, 20)
+  csr.io.decode_csr_cmd := id_stage.io.id_ex.ctrl.csr_cmd
+
+  // CSR写数据来源：
+  // - 对于CSRRW/RS/RC: 使用rs1的数据
+  // - 对于CSRRWI/RSI/RCI: 使用zimm（零扩展立即数，inst[19:15]）
+  val csr_wdata = Wire(UInt(32.W))
+  val is_csr_imm = id_stage.io.id_ex.ctrl.csr_cmd >= CSROp.RWI
+  csr_wdata := Mux(is_csr_imm,
+    id_stage.io.id_ex.inst(19, 15),  // zimm (zero-extended immediate)
+    ex_stage.io.ex_mem.rs1_data       // rs1数据
+  )
+  csr.io.execute_csr_wdata := csr_wdata
+
+  // 异常检测
+  val exception = id_stage.io.id_ex.ctrl.is_ecall ||
+                  id_stage.io.id_ex.ctrl.is_ebreak
+                  // TODO: 添加其他异常：非法指令、地址未对齐等
+
+  csr.io.exception := exception
+  csr.io.exception_pc := id_stage.io.id_ex.pc
+  csr.io.exception_cause := MuxCase(0.U, Seq(
+    id_stage.io.id_ex.ctrl.is_ecall  -> TrapCause.ECALL_FROM_M,
+    id_stage.io.id_ex.ctrl.is_ebreak -> TrapCause.BREAKPOINT
+  ))
+  csr.io.exception_tval := 0.U  // 暂时不使用
+
+  // 中断输入（来自PLIC和定时器）
+  csr.io.external_irq := io.external_irq
+  csr.io.timer_irq := io.timer_irq
+  csr.io.software_irq := io.software_irq
+
+  // MRET指令处理
+  csr.io.mret := id_stage.io.id_ex.ctrl.is_mret
+
+  // 陷入处理：当发生陷入或MRET时，修改PC并冲刷流水线
+  val trap_or_mret = csr.io.trap_taken || csr.io.mret
+
+  when(trap_or_mret) {
+    // 选择新的PC值
+    val new_pc = Mux(csr.io.trap_taken, csr.io.trap_vector, csr.io.epc)
+
+    // 强制更新IF阶段的PC
+    // 注意：这需要修改IFStage来支持陷入
+    // 暂时通过branch机制实现
+    if_stage.io.branch_taken := true.B
+    if_stage.io.branch_target := new_pc
+
+    // 冲刷流水线
+    if_stage.io.flush := true.B
+    id_stage.io.flush := true.B
+    ex_stage.io.flush := true.B
+  }
 
   // ========== 调试输出 ==========
 

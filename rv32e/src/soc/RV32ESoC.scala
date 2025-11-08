@@ -25,13 +25,14 @@ case class SoCConfig(
  * RV32E SoC顶层模块
  *
  * 集成组件：
- * - RV32E 5级流水线处理器核心
+ * - RV32E 5级流水线处理器核心（含CSR）
  * - Wishbone B4总线互连
  * - Boot ROM
  * - RAM
  * - UART
  * - GPIO
  * - Timer
+ * - PLIC (中断控制器)
  *
  * 地址映射：
  * 0x00000000 - 0x00003FFF : Boot ROM (16KB)
@@ -39,6 +40,7 @@ case class SoCConfig(
  * 0x40000000 - 0x40000FFF : UART (4KB)
  * 0x40001000 - 0x40001FFF : GPIO (4KB)
  * 0x40002000 - 0x40002FFF : Timer (4KB)
+ * 0x40010000 - 0x4001FFFF : PLIC (64KB)
  */
 class RV32ESoC(config: SoCConfig = SoCConfig()) extends Module {
   val io = IO(new Bundle {
@@ -87,6 +89,9 @@ class RV32ESoC(config: SoCConfig = SoCConfig()) extends Module {
   // Timer
   val timer = Module(new Timer())
 
+  // PLIC (中断控制器)
+  val plic = Module(new PLIC())
+
   // ========== Wishbone Master Adapters ==========
 
   // Instruction bus adapter
@@ -115,7 +120,8 @@ class RV32ESoC(config: SoCConfig = SoCConfig()) extends Module {
     AddressMap(base = 0x20000000L, size = 0x00010000L, name = "RAM"),
     AddressMap(base = 0x40000000L, size = 0x00001000L, name = "UART"),
     AddressMap(base = 0x40001000L, size = 0x00001000L, name = "GPIO"),
-    AddressMap(base = 0x40002000L, size = 0x00001000L, name = "Timer")
+    AddressMap(base = 0x40002000L, size = 0x00001000L, name = "Timer"),
+    AddressMap(base = 0x40010000L, size = 0x00010000L, name = "PLIC")  // 新增
   )
 
   // ========== Instruction Bus Crossbar ==========
@@ -150,6 +156,7 @@ class RV32ESoC(config: SoCConfig = SoCConfig()) extends Module {
   uart.io.wb <> dmem_crossbar.io.slaves(2)
   gpio.io.wb <> dmem_crossbar.io.slaves(3)
   timer.io.wb <> dmem_crossbar.io.slaves(4)
+  plic.io.wb <> dmem_crossbar.io.slaves(5)  // 新增
 
   // ========== Peripheral Connections ==========
 
@@ -166,6 +173,26 @@ class RV32ESoC(config: SoCConfig = SoCConfig()) extends Module {
 
   // Timer
   io.timer_irq := timer.io.irq
+
+  // ========== PLIC Interrupt Connections ==========
+
+  // 收集所有外设中断源
+  plic.io.interrupts := Cat(
+    0.U(22.W),                // 保留 [31:10]
+    0.U(1.W),                 // [9] 保留 (将来用于SPI)
+    timer.io.irq,             // [8] Timer溢出中断
+    0.U(3.W),                 // [7:5] 保留 (GPIO扩展)
+    gpio.io.irq(0),           // [4] GPIO[0]中断
+    0.U(1.W),                 // [3] 保留 (UART错误)
+    0.U(1.W),                 // [2] 保留 (UART RX)
+    uart.io.irq,              // [1] UART中断
+    0.U(1.W)                  // [0] 保留（中断源0）
+  )
+
+  // 连接PLIC输出到CPU
+  cpu.io.external_irq := plic.io.m_interrupt
+  cpu.io.timer_irq := false.B      // 直连定时器中断（可选）
+  cpu.io.software_irq := false.B   // 软件中断（暂未实现）
 
   // ========== Debug Signals ==========
 
