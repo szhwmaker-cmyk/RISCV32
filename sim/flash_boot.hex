@@ -1,0 +1,108 @@
+// RV32E Boot Program for RT-Thread Test
+// Base address: 0x10000000 (Flash)
+//
+// This program:
+// 1. Sets stack pointer to 0x80040000 (top of 256KB RAM)
+// 2. Outputs "RT-Thread Boot\n" to UART (0x20000000)
+// 3. Enters infinite loop
+//
+// Generated from FlashModel.generateRTThreadBootProgram()
+
+// Address 0x00: lui sp, 0x80040
+@00000000 80040137
+
+// Address 0x04: lui a0, 0x20000
+@00000001 20000537
+
+// Address 0x08: addi a1, zero, 82 ('R')
+@00000002 05200593
+
+// Address 0x0C: sw a1, 0(a0)
+@00000003 00B52023
+
+// Address 0x10: addi a1, zero, 84 ('T')
+@00000004 05400593
+
+// Address 0x14: sw a1, 0(a0)
+@00000005 00B52023
+
+// Address 0x18: addi a1, zero, 45 ('-')
+@00000006 02D00593
+
+// Address 0x1C: sw a1, 0(a0)
+@00000007 00B52023
+
+// Address 0x20: addi a1, zero, 84 ('T')
+@00000008 05400593
+
+// Address 0x24: sw a1, 0(a0)
+@00000009 00B52023
+
+// Address 0x28: addi a1, zero, 104 ('h')
+@0000000A 06800593
+
+// Address 0x2C: sw a1, 0(a0)
+@0000000B 00B52023
+
+// Address 0x30: addi a1, zero, 114 ('r')
+@0000000C 07200593
+
+// Address 0x34: sw a1, 0(a0)
+@0000000D 00B52023
+
+// Address 0x38: addi a1, zero, 101 ('e')
+@0000000E 06500593
+
+// Address 0x3C: sw a1, 0(a0)
+@0000000F 00B52023
+
+// Address 0x40: addi a1, zero, 97 ('a')
+@00000010 06100593
+
+// Address 0x44: sw a1, 0(a0)
+@00000011 00B52023
+
+// Address 0x48: addi a1, zero, 100 ('d')
+@00000012 06400593
+
+// Address 0x4C: sw a1, 0(a0)
+@00000013 00B52023
+
+// Address 0x50: addi a1, zero, 32 (' ')
+@00000014 02000593
+
+// Address 0x54: sw a1, 0(a0)
+@00000015 00B52023
+
+// Address 0x58: addi a1, zero, 66 ('B')
+@00000016 04200593
+
+// Address 0x5C: sw a1, 0(a0)
+@00000017 00B52023
+
+// Address 0x60: addi a1, zero, 111 ('o')
+@00000018 06F00593
+
+// Address 0x64: sw a1, 0(a0)
+@00000019 00B52023
+
+// Address 0x68: addi a1, zero, 111 ('o')
+@0000001A 06F00593
+
+// Address 0x6C: sw a1, 0(a0)
+@0000001B 00B52023
+
+// Address 0x70: addi a1, zero, 116 ('t')
+@0000001C 07400593
+
+// Address 0x74: sw a1, 0(a0)
+@0000001D 00B52023
+
+// Address 0x78: addi a1, zero, 10 ('\n')
+@0000001E 00A00593
+
+// Address 0x7C: sw a1, 0(a0)
+@0000001F 00B52023
+
+// Address 0x80: jal zero, 0 (infinite loop)
+@00000020 0000006F
