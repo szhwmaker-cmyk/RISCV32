@@ -1,239 +1,214 @@
 package common
 
 import chisel3._
+import chisel3.util._
 
-/**
- * RV32E SoC 系统配置参数
- * 包含处理器核心参数、总线配置和地址空间映射
- */
+// ============================================================================
+// RV32E SoC 系统配置参数
+// ============================================================================
+
 object Config {
+  // 基础参数
+  val XLEN = 32              // 数据宽度
+  val REG_NUM = 16           // RV32E: 16个寄存器
+  val REG_ADDR_WIDTH = 4     // log2(16) = 4
 
-  // ============================================================================
-  // 处理器核心参数
-  // ============================================================================
-
-  /** 数据宽度 (RV32) */
-  val XLEN = 32
-
-  /** 寄存器数量 (RV32E 使用 16 个寄存器: x0-x15) */
-  val REG_NUM = 16
-
-  /** 寄存器地址宽度 (4 位可表示 16 个寄存器) */
-  val REG_ADDR_WIDTH = 4
-
-  /** 复位后的 PC 值 (指向 SPI Flash 起始地址) */
-  val PC_RESET = 0x10000000L
-
-  /** 指令宽度 */
-  val INST_WIDTH = 32
-
-
-  // ============================================================================
-  // 总线参数
-  // ============================================================================
-
-  /** 总线数据宽度 */
-  val BUS_WIDTH = 32
-
-  /** 地址总线宽度 */
-  val ADDR_WIDTH = 32
-
-  /** 字节选择信号宽度 (32位总线需要4个字节选择位) */
-  val SEL_WIDTH = 4
-
-
-  // ============================================================================
-  // 存储器参数
-  // ============================================================================
-
-  /** RAM 大小 (64KB) */
-  val RAM_SIZE = 64 * 1024
-
-  /** RAM 地址宽度 (64KB = 2^16) */
-  val RAM_ADDR_WIDTH = 16
-
-  /** SPI Flash 大小 (假设 16MB) */
-  val FLASH_SIZE = 16 * 1024 * 1024
-
-
-  // ============================================================================
   // 地址空间映射
-  // ============================================================================
+  val FLASH_BASE   = 0x10000000L  // SPI Flash 基地址
+  val FLASH_SIZE   = 0x10000000L  // 256 MB
 
-  /** SPI Flash 基地址 (256MB 空间: 0x1000_0000 - 0x1FFF_FFFF) */
-  val SPI_FLASH_BASE = 0x10000000L
-  val SPI_FLASH_SIZE = 0x10000000L  // 256MB
-  val SPI_FLASH_END  = SPI_FLASH_BASE + SPI_FLASH_SIZE - 1
+  val UART_BASE    = 0x20000000L  // UART 基地址
+  val UART_SIZE    = 0x00010000L  // 64 KB
 
-  /** UART 基地址 (64KB 空间) */
-  val UART_BASE = 0x20000000L
-  val UART_SIZE = 0x10000L  // 64KB
-  val UART_END  = UART_BASE + UART_SIZE - 1
+  val GPIO_BASE    = 0x20010000L  // GPIO 基地址
+  val GPIO_SIZE    = 0x00010000L  // 64 KB
 
-  /** GPIO 基地址 (64KB 空间) */
-  val GPIO_BASE = 0x20010000L
-  val GPIO_SIZE = 0x10000L  // 64KB
-  val GPIO_END  = GPIO_BASE + GPIO_SIZE - 1
+  val SPI_BASE     = 0x20020000L  // SPI Master 基地址
+  val SPI_SIZE     = 0x00010000L  // 64 KB
 
-  /** SPI Master 基地址 (64KB 空间) */
-  val SPI_BASE = 0x20020000L
-  val SPI_SIZE = 0x10000L  // 64KB
-  val SPI_END  = SPI_BASE + SPI_SIZE - 1
+  val I2C_BASE     = 0x20030000L  // I2C Master 基地址
+  val I2C_SIZE     = 0x00010000L  // 64 KB
 
-  /** I2C Master 基地址 (64KB 空间) */
-  val I2C_BASE = 0x20030000L
-  val I2C_SIZE = 0x10000L  // 64KB
-  val I2C_END  = I2C_BASE + I2C_SIZE - 1
+  val RAM_BASE     = 0x80000000L  // RAM 基地址
+  val RAM_SIZE     = 0x10000000L  // 256 MB 地址空间
+  val RAM_ACTUAL   = 0x00040000L  // 实际 256 KB
 
-  /** RAM 基地址 (256MB 空间: 0x8000_0000 - 0x8FFF_FFFF) */
-  val RAM_BASE = 0x80000000L
-  val RAM_SPACE_SIZE = 0x10000000L  // 256MB 地址空间
-  val RAM_END  = RAM_BASE + RAM_SPACE_SIZE - 1
-
-
-  // ============================================================================
-  // 外设寄存器偏移 - UART
-  // ============================================================================
-
-  object UartRegs {
-    val TXDATA = 0x00  // 发送数据寄存器
-    val RXDATA = 0x04  // 接收数据寄存器
-    val STATUS = 0x08  // 状态寄存器 [tx_full, tx_empty, rx_valid, ...]
-    val BAUD   = 0x0C  // 波特率分频寄存器
-    val CTRL   = 0x10  // 控制寄存器 [tx_en, rx_en, ...]
+  // 外设寄存器偏移
+  object UartReg {
+    val TXDATA = 0x00
+    val RXDATA = 0x04
+    val STATUS = 0x08
+    val BAUD   = 0x0C
+    val CTRL   = 0x10
   }
 
-
-  // ============================================================================
-  // 外设寄存器偏移 - GPIO
-  // ============================================================================
-
-  object GpioRegs {
-    val DATA_IN  = 0x00  // 输入数据寄存器
-    val DATA_OUT = 0x04  // 输出数据寄存器
-    val DIR      = 0x08  // 方向控制寄存器 (0=输入, 1=输出)
-    val OE       = 0x0C  // 输出使能寄存器
+  object GpioReg {
+    val DATA_IN  = 0x00
+    val DATA_OUT = 0x04
+    val DIR      = 0x08
+    val OE       = 0x0C
   }
 
-
-  // ============================================================================
-  // 外设寄存器偏移 - SPI Flash Controller
-  // ============================================================================
-
-  object SpiFlashRegs {
-    val CTRL  = 0x00  // 控制寄存器 [start, busy, done]
-    val DIV   = 0x04  // 时钟分频寄存器
-    val ADDR  = 0x08  // Flash 地址寄存器
-    val DATA  = 0x0C  // 读取数据寄存器
-    val CMD   = 0x10  // SPI 命令寄存器
+  object SpiReg {
+    val CTRL     = 0x00
+    val DIV      = 0x04
+    val DATA     = 0x08
+    val STATUS   = 0x0C
   }
 
-
-  // ============================================================================
-  // 外设寄存器偏移 - SPI Master
-  // ============================================================================
-
-  object SpiRegs {
-    val TXDATA = 0x00  // 发送数据寄存器
-    val RXDATA = 0x04  // 接收数据寄存器
-    val CTRL   = 0x08  // 控制寄存器 [CPOL, CPHA, data_width, ...]
-    val DIV    = 0x0C  // 时钟分频寄存器
-    val STATUS = 0x10  // 状态寄存器 [busy, done, ...]
-    val SS     = 0x14  // 片选寄存器
+  object I2cReg {
+    val CTRL     = 0x00
+    val DIV      = 0x04
+    val ADDR     = 0x08
+    val DATA     = 0x0C
+    val STATUS   = 0x10
   }
 
+  // 时钟配置
+  val CLOCK_FREQ = 50000000   // 50 MHz
+  val UART_BAUD  = 115200     // 波特率
+  val BAUD_DIV   = CLOCK_FREQ / UART_BAUD  // ≈ 434
 
-  // ============================================================================
-  // 外设寄存器偏移 - I2C Master
-  // ============================================================================
+  // Boot 配置
+  val BOOT_ADDR  = FLASH_BASE // 启动地址
+  val PROG_ADDR  = RAM_BASE   // 程序执行地址
+}
 
-  object I2cRegs {
-    val DATA   = 0x00  // 数据寄存器
-    val ADDR   = 0x04  // 从设备地址寄存器
-    val CTRL   = 0x08  // 控制寄存器 [start, stop, read, write, ack, ...]
-    val DIV    = 0x0C  // 时钟分频寄存器
-    val STATUS = 0x10  // 状态寄存器 [busy, ack_received, ...]
-  }
+// ============================================================================
+// ALU 操作码定义
+// ============================================================================
 
+object AluOp {
+  val ADD  = 0.U(4.W)
+  val SUB  = 1.U(4.W)
+  val SLT  = 2.U(4.W)  // Set Less Than
+  val SLTU = 3.U(4.W)  // Set Less Than Unsigned
+  val AND  = 4.U(4.W)
+  val OR   = 5.U(4.W)
+  val XOR  = 6.U(4.W)
+  val SLL  = 7.U(4.W)  // Shift Left Logical
+  val SRL  = 8.U(4.W)  // Shift Right Logical
+  val SRA  = 9.U(4.W)  // Shift Right Arithmetic
+  val COPY = 10.U(4.W) // Copy src1 (for LUI)
+}
 
-  // ============================================================================
-  // UART 默认配置
-  // ============================================================================
+// ============================================================================
+// 指令类型定义
+// ============================================================================
 
-  /** 系统时钟频率 (50 MHz) */
-  val SYS_CLK_FREQ = 50000000
+object InstType {
+  val R_TYPE = 0.U(3.W)
+  val I_TYPE = 1.U(3.W)
+  val S_TYPE = 2.U(3.W)
+  val B_TYPE = 3.U(3.W)
+  val U_TYPE = 4.U(3.W)
+  val J_TYPE = 5.U(3.W)
+}
 
-  /** 默认波特率 (115200) */
-  val UART_DEFAULT_BAUD = 115200
+// ============================================================================
+// 分支类型定义
+// ============================================================================
 
-  /** UART 波特率分频值 = SYS_CLK_FREQ / BAUD_RATE */
-  val UART_DEFAULT_DIV = SYS_CLK_FREQ / UART_DEFAULT_BAUD
+object BranchType {
+  val NO_BR  = 0.U(3.W)
+  val BEQ    = 1.U(3.W)
+  val BNE    = 2.U(3.W)
+  val BLT    = 3.U(3.W)
+  val BGE    = 4.U(3.W)
+  val BLTU   = 5.U(3.W)
+  val BGEU   = 6.U(3.W)
+}
 
+// ============================================================================
+// 内存访问类型
+// ============================================================================
 
-  // ============================================================================
-  // 流水线参数
-  // ============================================================================
+object MemType {
+  val BYTE  = 0.U(2.W)  // LB/SB
+  val HALF  = 1.U(2.W)  // LH/SH
+  val WORD  = 2.U(2.W)  // LW/SW
+  val BYTEU = 3.U(2.W)  // LBU
+  val HALFU = 4.U(2.W)  // LHU
+}
 
-  /** 流水线阶段数 */
-  val PIPELINE_STAGES = 5  // IF, ID, EX, MEM, WB
+// ============================================================================
+// 写回数据源选择
+// ============================================================================
 
-  /** 分支预测策略 (0: 不跳转, 1: 总是跳转) */
-  val BRANCH_PREDICTION = 0  // 静态预测不跳转
+object WBSrc {
+  val ALU_RESULT = 0.U(2.W)
+  val MEM_DATA   = 1.U(2.W)
+  val PC_PLUS_4  = 2.U(2.W)
+}
 
+// ============================================================================
+// 控制信号 Bundle
+// ============================================================================
 
-  // ============================================================================
-  // ALU 操作码
-  // ============================================================================
+class ControlSignals extends Bundle {
+  val reg_write  = Bool()      // 是否写寄存器
+  val mem_read   = Bool()      // 是否读内存
+  val mem_write  = Bool()      // 是否写内存
+  val alu_op     = UInt(4.W)   // ALU 操作码
+  val alu_src1   = UInt(2.W)   // ALU src1 选择 (0=rs1, 1=PC)
+  val alu_src2   = UInt(2.W)   // ALU src2 选择 (0=rs2, 1=imm)
+  val branch     = UInt(3.W)   // 分支类型
+  val jump       = Bool()      // 跳转指令 (JAL/JALR)
+  val wb_src     = UInt(2.W)   // 写回数据源
+  val mem_type   = UInt(3.W)   // 内存访问类型
+}
 
-  object AluOp {
-    val ADD  = 0.U(4.W)
-    val SUB  = 1.U(4.W)
-    val SLT  = 2.U(4.W)  // Set Less Than (signed)
-    val SLTU = 3.U(4.W)  // Set Less Than Unsigned
-    val AND  = 4.U(4.W)
-    val OR   = 5.U(4.W)
-    val XOR  = 6.U(4.W)
-    val SLL  = 7.U(4.W)  // Shift Left Logical
-    val SRL  = 8.U(4.W)  // Shift Right Logical
-    val SRA  = 9.U(4.W)  // Shift Right Arithmetic
-    val NOP  = 15.U(4.W)
-  }
+// ============================================================================
+// 流水线寄存器定义
+// ============================================================================
 
+class IF_ID_Reg extends Bundle {
+  val pc = UInt(32.W)
+  val inst = UInt(32.W)
+  val valid = Bool()
+}
 
-  // ============================================================================
-  // 辅助函数：地址匹配
-  // ============================================================================
+class ID_EX_Reg extends Bundle {
+  val pc = UInt(32.W)
+  val rs1_data = UInt(32.W)
+  val rs2_data = UInt(32.W)
+  val imm = UInt(32.W)
+  val rs1 = UInt(4.W)
+  val rs2 = UInt(4.W)
+  val rd = UInt(4.W)
+  val ctrl = new ControlSignals
+  val valid = Bool()
+}
 
-  /**
-   * 检查地址是否在指定范围内
-   */
-  def inRange(addr: UInt, base: Long, size: Long): Bool = {
-    val end = base + size - 1
-    addr >= base.U && addr <= end.U
-  }
+class EX_MEM_Reg extends Bundle {
+  val alu_result = UInt(32.W)
+  val rs2_data = UInt(32.W)
+  val rd = UInt(4.W)
+  val ctrl = new ControlSignals
+  val valid = Bool()
+  val branch_target = UInt(32.W)
+  val branch_taken = Bool()
+}
 
-  /**
-   * 地址解码：判断地址属于哪个外设
-   */
-  def decodeAddr(addr: UInt): (Bool, Bool, Bool, Bool, Bool, Bool) = {
-    val sel_flash = inRange(addr, SPI_FLASH_BASE, SPI_FLASH_SIZE)
-    val sel_uart  = inRange(addr, UART_BASE, UART_SIZE)
-    val sel_gpio  = inRange(addr, GPIO_BASE, GPIO_SIZE)
-    val sel_spi   = inRange(addr, SPI_BASE, SPI_SIZE)
-    val sel_i2c   = inRange(addr, I2C_BASE, I2C_SIZE)
-    val sel_ram   = inRange(addr, RAM_BASE, RAM_SPACE_SIZE)
+class MEM_WB_Reg extends Bundle {
+  val alu_result = UInt(32.W)
+  val mem_data = UInt(32.W)
+  val rd = UInt(4.W)
+  val ctrl = new ControlSignals
+  val valid = Bool()
+}
 
-    (sel_flash, sel_uart, sel_gpio, sel_spi, sel_i2c, sel_ram)
-  }
+// ============================================================================
+// 内存接口定义
+// ============================================================================
 
-
-  // ============================================================================
-  // 调试配置
-  // ============================================================================
-
-  /** 是否启用调试输出 */
-  val DEBUG_ENABLE = false
-
-  /** 是否启用性能计数器 */
-  val PERF_COUNTER_ENABLE = true
+class MemPortIO extends Bundle {
+  val addr = Output(UInt(32.W))
+  val wdata = Output(UInt(32.W))
+  val rdata = Input(UInt(32.W))
+  val wen = Output(Bool())
+  val ren = Output(Bool())
+  val mask = Output(UInt(4.W))  // 字节选择
+  val valid = Output(Bool())
+  val ready = Input(Bool())
 }

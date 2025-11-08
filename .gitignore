@@ -1,34 +1,26 @@
-# Scala / SBT
-target/
-project/target/
 *.class
 *.log
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+.metals/
+.bloop/
 .bsp/
-
-# Mill
-out/
-
-# Generated files
-generated/
-*.v
-*.fir
-*.anno.json
-
-# IDE
+project/metals.sbt
 .idea/
-.vscode/
+target/
+out/
+test_run_dir/
+*.fir
+*.v
+*.anno.json
+*.f
+build/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
-Thumbs.db
-
-# Verilator
-obj_dir/
-*.vcd
-*.fst
-
-# Test outputs
-test_run_dir/
