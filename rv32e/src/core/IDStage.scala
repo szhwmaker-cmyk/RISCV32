@@ -30,6 +30,10 @@ class ControlUnit extends Module {
   ctrl.mem_unsigned := false.B
   ctrl.reg_write := false.B
   ctrl.wb_src := 0.U  // ALU
+  ctrl.csr_cmd := CSROp.NONE  // 新增：默认无CSR操作
+  ctrl.is_ecall := false.B    // 新增
+  ctrl.is_ebreak := false.B   // 新增
+  ctrl.is_mret := false.B     // 新增
 
   val imm_type = Wire(UInt(ImmType.width.W))
   imm_type := ImmType.I_TYPE
@@ -179,6 +183,57 @@ class ControlUnit extends Module {
       ctrl.alu_src2 := 1.U  // imm
       ctrl.alu_op := ALUOp.ADD
       imm_type := ImmType.U_TYPE
+    }
+
+    // SYSTEM (CSR and privileged instructions)
+    is(Opcode.SYSTEM) {
+      val funct12 = io.inst(31, 20)
+
+      switch(io.funct3) {
+        is(Funct3.PRIV) {
+          // Privileged instructions: ECALL, EBREAK, MRET, WFI
+          when(funct12 === Funct12.ECALL) {
+            ctrl.is_ecall := true.B
+          }.elsewhen(funct12 === Funct12.EBREAK) {
+            ctrl.is_ebreak := true.B
+          }.elsewhen(funct12 === Funct12.MRET) {
+            ctrl.is_mret := true.B
+          }
+          // WFI: 当前实现为NOP
+        }
+
+        is(Funct3.CSRRW) {
+          ctrl.reg_write := true.B
+          ctrl.wb_src := 3.U  // CSR
+          ctrl.csr_cmd := CSROp.RW
+        }
+        is(Funct3.CSRRS) {
+          ctrl.reg_write := true.B
+          ctrl.wb_src := 3.U
+          ctrl.csr_cmd := CSROp.RS
+        }
+        is(Funct3.CSRRC) {
+          ctrl.reg_write := true.B
+          ctrl.wb_src := 3.U
+          ctrl.csr_cmd := CSROp.RC
+        }
+        is(Funct3.CSRRWI) {
+          ctrl.reg_write := true.B
+          ctrl.wb_src := 3.U
+          ctrl.csr_cmd := CSROp.RWI
+        }
+        is(Funct3.CSRRSI) {
+          ctrl.reg_write := true.B
+          ctrl.wb_src := 3.U
+          ctrl.csr_cmd := CSROp.RSI
+        }
+        is(Funct3.CSRRCI) {
+          ctrl.reg_write := true.B
+          ctrl.wb_src := 3.U
+          ctrl.csr_cmd := CSROp.RCI
+        }
+      }
+      imm_type := ImmType.I_TYPE  // CSR address or zimm
     }
   }
 

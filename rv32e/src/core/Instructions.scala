@@ -70,6 +70,15 @@ object Funct3 {
   val SB = "b000".U(3.W)
   val SH = "b001".U(3.W)
   val SW = "b010".U(3.W)
+
+  // SYSTEM (CSR instructions)
+  val PRIV   = "b000".U(3.W)  // ECALL, EBREAK, MRET, WFI
+  val CSRRW  = "b001".U(3.W)  // CSR Read-Write
+  val CSRRS  = "b010".U(3.W)  // CSR Read-Set
+  val CSRRC  = "b011".U(3.W)  // CSR Read-Clear
+  val CSRRWI = "b101".U(3.W)  // CSR Read-Write Immediate
+  val CSRRSI = "b110".U(3.W)  // CSR Read-Set Immediate
+  val CSRRCI = "b111".U(3.W)  // CSR Read-Clear Immediate
 }
 
 /**
@@ -78,6 +87,17 @@ object Funct3 {
 object Funct7 {
   val NORMAL = "b0000000".U(7.W)  // Used for ADD, SRL, etc.
   val ALT    = "b0100000".U(7.W)  // Used for SUB, SRA
+}
+
+/**
+ * Function12 codes for SYSTEM instructions
+ * (位于inst[31:20])
+ */
+object Funct12 {
+  val ECALL  = "b000000000000".U(12.W)  // Environment call
+  val EBREAK = "b000000000001".U(12.W)  // Environment break
+  val MRET   = "b001100000010".U(12.W)  // Machine return
+  val WFI    = "b000100000101".U(12.W)  // Wait for interrupt
 }
 
 /**
@@ -121,5 +141,11 @@ class ControlSignals extends Bundle {
 
   // WB stage control
   val reg_write = Bool()
-  val wb_src = UInt(2.W)  // 0: ALU, 1: MEM, 2: PC+4
+  val wb_src = UInt(2.W)  // 0: ALU, 1: MEM, 2: PC+4, 3: CSR
+
+  // CSR control (新增)
+  val csr_cmd = UInt(3.W)   // CSR操作类型
+  val is_ecall = Bool()     // ECALL指令
+  val is_ebreak = Bool()    // EBREAK指令
+  val is_mret = Bool()      // MRET指令
 }

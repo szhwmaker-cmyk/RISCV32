@@ -7,10 +7,11 @@
 本项目实现一个完整的可启动、可验证的嵌入式 SoC 系统，包括：
 
 - **处理器核心**: RV32E 五级流水线，支持数据转发和冒险检测
-- **启动系统**: SPI Flash Boot，支持程序加载
-- **总线系统**: Wishbone B4 Pipeline 互联
-- **外设集成**: UART, GPIO, SPI Master, I2C Master
-- **存储器**: 64KB SRAM
+- **中断系统**: CSR寄存器 + PLIC中断控制器，支持RT-Thread等RTOS
+- **启动系统**: Boot ROM + RAM，支持程序加载和执行
+- **总线系统**: Wishbone B4标准总线互联
+- **外设集成**: UART, GPIO, Timer, SPI Master, I2C Master
+- **存储器**: 64KB RAM + 16KB Boot ROM
 
 ## 项目结构
 
